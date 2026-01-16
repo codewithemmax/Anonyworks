@@ -107,12 +107,11 @@ app.post('/api/auth/signup', async (req, res) => {
   }
 });
 
-// Send OTP for login
-app.post('/api/auth/send-otp', async (req, res) => {
+// Login endpoint (no OTP)
+app.post('/api/auth/login', async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    // Verify user credentials
     const result = await pool.query(
       'SELECT * FROM users WHERE email = $1',
       [email]
@@ -129,14 +128,43 @@ app.post('/api/auth/send-otp', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid credentials' });
     }
 
-    // Generate OTP
+    const token = generateToken(user.id, user.email);
+
+    res.json({
+      success: true,
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        userType: user.user_type
+      }
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// Forgot password - send OTP
+app.post('/api/auth/forgot-password', async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    const result = await pool.query(
+      'SELECT * FROM users WHERE email = $1',
+      [email]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(400).json({ success: false, message: 'Email not found' });
+    }
+
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
-    // Delete old OTPs for this email
     await pool.query('DELETE FROM otp_codes WHERE email = $1', [email]);
 
-    // Insert new OTP
     await pool.query(
       'INSERT INTO otp_codes (email, code, expires_at) VALUES ($1, $2, $3)',
       [email, otp, expiresAt]
@@ -146,7 +174,37 @@ app.post('/api/auth/send-otp', async (req, res) => {
 
     res.json({ success: true, message: 'OTP sent to email' });
   } catch (error) {
-    console.error('Send OTP error:', error);
+    console.error('Forgot password error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// Reset password with OTP
+app.post('/api/auth/reset-password', async (req, res) => {
+  const { email, otp, newPassword } = req.body;
+
+  try {
+    const result = await pool.query(
+      'SELECT * FROM otp_codes WHERE email = $1 AND code = $2 AND expires_at > NOW() ORDER BY created_at DESC LIMIT 1',
+      [email, otp]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
+    }
+
+    await pool.query('DELETE FROM otp_codes WHERE email = $1', [email]);
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+
+    await pool.query(
+      'UPDATE users SET password_hash = $1 WHERE email = $2',
+      [passwordHash, email]
+    );
+
+    res.json({ success: true, message: 'Password reset successful' });
+  } catch (error) {
+    console.error('Reset password error:', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });

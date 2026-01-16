@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Mail } from 'lucide-react';
+import { Mail, Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../utils/supabase';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState('');
   const navigate = useNavigate();
@@ -30,7 +31,7 @@ export default function Login() {
 
   const handleSendOTP = async () => {
     try {
-      const response = await fetch('/api/auth/send-otp', {
+      const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
@@ -39,12 +40,16 @@ export default function Login() {
       const data = await response.json();
       
       if (data.success) {
-        setOtpSent(true);
+        if (data.token) {
+          localStorage.setItem('token', data.token);
+          localStorage.setItem('user', JSON.stringify(data.user));
+          navigate('/dashboard');
+        }
       } else {
         alert(data.message);
       }
     } catch (error) {
-      alert('Failed to send OTP. Please try again.');
+      alert('Login failed. Please try again.');
     }
   };
 
@@ -119,19 +124,34 @@ export default function Login() {
               </div>
               <div>
                 <label className="block text-sm font-medium mb-2">Password</label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-3 rounded-lg bg-zinc-900 border border-zinc-800 focus:border-purple-500 outline-none transition-all"
-                  placeholder="••••••••"
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full px-4 py-3 rounded-lg bg-zinc-900 border border-zinc-800 focus:border-purple-500 outline-none transition-all pr-12"
+                    placeholder="••••••••"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white"
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
               </div>
+              <button
+                onClick={() => navigate('/forgot-password')}
+                className="text-sm text-purple-400 hover:text-purple-300 text-right"
+              >
+                Forgot password?
+              </button>
               <button
                 onClick={handleSendOTP}
                 className="w-full px-6 py-3 rounded-lg bg-primary hover:bg-primary-dark transition-all font-medium"
               >
-                Send OTP
+                Login
               </button>
             </div>
           ) : (
