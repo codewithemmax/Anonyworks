@@ -10,19 +10,20 @@
     "init-db": "node init-db.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "cors": "^2.8.5",
     "@getbrevo/brevo": "^2.2.0",
+    "@google/generative-ai": "^0.24.1",
+    "bcrypt": "^5.1.1",
+    "cors": "^2.8.5",
     "dotenv": "^16.4.5",
-    "pg": "^8.11.3",
+    "express": "^4.18.2",
     "jsonwebtoken": "^9.0.2",
-    "bcrypt": "^5.1.1"
+    "pg": "^8.11.3"
   },
   "devDependencies": {
-    "@types/express": "^4.17.21",
-    "@types/cors": "^2.8.17",
-    "@types/jsonwebtoken": "^9.0.5",
     "@types/bcrypt": "^5.0.2",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/jsonwebtoken": "^9.0.5",
     "@types/pg": "^8.10.9"
   }
 }
