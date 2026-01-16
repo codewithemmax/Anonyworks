@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import bcrypt from 'bcrypt';
+import * as brevo from '@getbrevo/brevo';
 import { pool } from './db.js';
 import { generateToken, verifyToken } from './auth.js';
 
@@ -12,6 +13,46 @@ const PORT = process.env.PORT || 3001;
 
 app.use(cors());
 app.use(express.json());
+
+// Initialize Brevo API
+const apiInstance = new brevo.TransactionalEmailsApi();
+apiInstance.setApiKey(brevo.TransactionalEmailsApiApiKeys.apiKey, process.env.BREVO_API_KEY);
+
+// Function to send OTP email
+const sendOTPEmail = async (email, otp) => {
+  if (!process.env.BREVO_API_KEY) {
+    console.log(`OTP for ${email}: ${otp}`);
+    return;
+  }
+
+  try {
+    const sendSmtpEmail = new brevo.SendSmtpEmail();
+    sendSmtpEmail.subject = 'Your AnonyWorks OTP Code';
+    sendSmtpEmail.to = [{ email }];
+    sendSmtpEmail.htmlContent = `
+      <html>
+        <body style="font-family: Arial, sans-serif; padding: 20px; background-color: #0a0a0a; color: #ffffff;">
+          <div style="max-width: 600px; margin: 0 auto; background-color: #1a1a1a; padding: 30px; border-radius: 10px; border: 1px solid #7c3aed;">
+            <h1 style="color: #7c3aed; text-align: center;">AnonyWorks</h1>
+            <h2 style="text-align: center;">Your OTP Code</h2>
+            <div style="background-color: #0a0a0a; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0;">
+              <h1 style="color: #7c3aed; font-size: 48px; letter-spacing: 10px; margin: 0;">${otp}</h1>
+            </div>
+            <p style="text-align: center; color: #a1a1aa;">This code will expire in 5 minutes.</p>
+            <p style="text-align: center; color: #a1a1aa; font-size: 12px; margin-top: 30px;">If you didn't request this code, please ignore this email.</p>
+          </div>
+        </body>
+      </html>
+    `;
+    sendSmtpEmail.sender = { name: 'AnonyWorks', email: process.env.BREVO_SENDER_EMAIL || 'olayinkaemma27@gmail.com' };
+
+    await apiInstance.sendTransacEmail(sendSmtpEmail);
+    console.log(`OTP email sent to ${email}`);
+  } catch (error) {
+    console.error('Brevo email error:', error);
+    console.log(`OTP for ${email}: ${otp}`);
+  }
+};
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -53,7 +94,7 @@ app.post('/api/auth/signup', async (req, res) => {
       [email, otp, expiresAt]
     );
 
-    console.log(`OTP for ${email}: ${otp}`);
+    await sendOTPEmail(email, otp);
 
     res.json({ 
       success: true, 
@@ -101,7 +142,7 @@ app.post('/api/auth/send-otp', async (req, res) => {
       [email, otp, expiresAt]
     );
 
-    console.log(`OTP for ${email}: ${otp}`);
+    await sendOTPEmail(email, otp);
 
     res.json({ success: true, message: 'OTP sent to email' });
   } catch (error) {
