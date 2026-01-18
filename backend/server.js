@@ -273,17 +273,112 @@ app.get('/api/user/profile', verifyToken, async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    res.json({ success: true, user: result.rows[0] });
+    return res.json({ success: true, user: result.rows[0] });
   } catch (error) {
     console.error('Profile error:', error);
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// Get user's active pits
+app.get('/api/user/pits', verifyToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT id, title, is_active, expires_at, created_at FROM pits WHERE creator_id = $1 AND expires_at > NOW() ORDER BY created_at DESC',
+      [req.user.userId]
+    );
+
+    res.json({ success: true, pits: result.rows });
+  } catch (error) {
+    console.error('Get pits error:', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
 
-// Cleanup expired OTPs (run periodically)
+// Create new pit
+app.post('/api/pit/create', verifyToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'INSERT INTO pits (creator_id) VALUES ($1) RETURNING id, expires_at',
+      [req.user.userId]
+    );
+
+    res.json({ 
+      success: true, 
+      pitId: result.rows[0].id,
+      expiresAt: result.rows[0].expires_at
+    });
+  } catch (error) {
+    console.error('Create pit error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// Get pit messages (protected)
+app.get('/api/pit/:id/messages', verifyToken, async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const pitResult = await pool.query(
+      'SELECT * FROM pits WHERE id = $1 AND creator_id = $2',
+      [id, req.user.userId]
+    );
+
+    if (pitResult.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Pit not found' });
+    }
+
+    const messagesResult = await pool.query(
+      'SELECT id, original_message, processed_message, is_professional, created_at FROM messages WHERE pit_id = $1 ORDER BY created_at DESC',
+      [id]
+    );
+
+    res.json({ success: true, messages: messagesResult.rows });
+  } catch (error) {
+    console.error('Get messages error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// Submit message to pit (public)
+app.post('/api/pit/:id/message', async (req, res) => {
+  const { id } = req.params;
+  const { message, isProfessional } = req.body;
+
+  try {
+    const pitResult = await pool.query(
+      'SELECT * FROM pits WHERE id = $1 AND is_active = TRUE AND expires_at > NOW()',
+      [id]
+    );
+
+    if (pitResult.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Pit not found, inactive, or expired' });
+    }
+
+    let processedMessage = message;
+    
+    if (isProfessional) {
+      // TODO: Integrate with Gemini API
+      processedMessage = `[Professional Mode] ${message}`;
+    }
+
+    await pool.query(
+      'INSERT INTO messages (pit_id, original_message, processed_message, is_professional) VALUES ($1, $2, $3, $4)',
+      [id, message, processedMessage, isProfessional]
+    );
+
+    res.json({ success: true, message: 'Message sent anonymously' });
+  } catch (error) {
+    console.error('Submit message error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// Cleanup expired OTPs and pits (run periodically)
 setInterval(async () => {
   try {
     await pool.query('DELETE FROM otp_codes WHERE expires_at < NOW()');
+    await pool.query('UPDATE pits SET is_active = FALSE WHERE expires_at < NOW() AND is_active = TRUE');
   } catch (error) {
     console.error('Cleanup error:', error);
   }
