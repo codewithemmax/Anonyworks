@@ -297,20 +297,25 @@ app.get('/api/user/pits', verifyToken, async (req, res) => {
 
 // Create new pit
 app.post('/api/pit/create', verifyToken, async (req, res) => {
+  const { userId } = req.user;
+  const { title } = req.body;
+
   try {
     const result = await pool.query(
-      'INSERT INTO pits (creator_id) VALUES ($1) RETURNING id, expires_at',
-      [req.user.userId]
+      'INSERT INTO pits (creator_id, title) VALUES ($1, $2) RETURNING id, expires_at, title',
+      [userId, title || 'Anonymous Feedback']
     );
 
     res.json({ 
       success: true, 
       pitId: result.rows[0].id,
-      expiresAt: result.rows[0].expires_at
+      expiresAt: result.rows[0].expires_at,
+      title: result.rows[0].title
     });
+
   } catch (error) {
     console.error('Create pit error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    res.status(500).json({ success: false, message: 'Could not create anonymous session' });
   }
 });
 

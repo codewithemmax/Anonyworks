@@ -5,7 +5,9 @@ import Login from './pages/Login';
 import ForgotPassword from './pages/ForgotPassword';
 import Dashboard from './pages/Dashboard';
 import Pit from './pages/Pit';
+import ViewMessage from './pages/ViewMessage';
 import ProtectedRoute from './components/ProtectedRoute';
+import { ToastContainer } from './components/Toast';
 
 function App() {
   return (
@@ -32,12 +34,18 @@ function App() {
           </ProtectedRoute>
         } />
         <Route path="/pit/:id" element={<Pit />} />
+        <Route path="/view-message/:pitId" element={
+          <ProtectedRoute requireAuth={true}>
+            <ViewMessage />
+          </ProtectedRoute>
+        } />
         <Route path="/dashboard" element={
           <ProtectedRoute requireAuth={true}>
             <Dashboard />
           </ProtectedRoute>
         } />
       </Routes>
+      <ToastContainer />
     </BrowserRouter>
   );
 }

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { LogOut, Plus, Link, Copy, Eye, EyeOff, Clock  } from 'lucide-react';
 import { api } from '../utils/api';
+import { toast } from '../components/Toast';
 
 interface Pit {
   id: string;
@@ -26,6 +27,8 @@ export default function Dashboard() {
   const [selectedPit, setSelectedPit] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [showOriginal, setShowOriginal] = useState<{[key: number]: boolean}>({});
+  const [showTitleInput, setShowTitleInput] = useState(false);
+  const [newTitle, setNewTitle] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -69,19 +72,27 @@ export default function Dashboard() {
   };
 
   const createPit = async () => {
-    try {
-      const response = await api.fetch('/api/pit/create', {
-        method: 'POST'
-      });
-      const data = await response.json();
-      
-      if (data.success) {
-        fetchPits();
-        setSelectedPit(data.pitId);
-        fetchMessages(data.pitId);
+    if (showTitleInput) {
+      try {
+        const response = await api.fetch('/api/pit/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: newTitle })
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+          fetchPits();
+          setSelectedPit(data.pitId);
+          fetchMessages(data.pitId);
+          setShowTitleInput(false);
+          setNewTitle('');
+        }
+      } catch (error) {
+        toast.error('Failed to create pit');
       }
-    } catch (error) {
-      alert('Failed to create pit');
+    } else {
+      setShowTitleInput(true);
     }
   };
 
@@ -102,7 +113,7 @@ export default function Dashboard() {
   const copyLink = (pitId: string) => {
     const url = `${window.location.origin}/pit/${pitId}`;
     navigator.clipboard.writeText(url);
-    alert('Link copied to clipboard!');
+    toast.success('Link copied to clipboard!');
   };
 
   const toggleOriginal = (messageId: number) => {
@@ -168,13 +179,26 @@ export default function Dashboard() {
           <div className="lg:col-span-1">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-xl font-bold">Your Pits</h3>
-              <button
-                onClick={createPit}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary hover:bg-primary-dark transition-all"
-              >
-                <Plus className="w-4 h-4" />
-                New Pit
-              </button>
+              <div className="flex flex-col gap-2">
+                {showTitleInput && (
+                  <input
+                    type="text"
+                    value={newTitle}
+                    onChange={(e) => setNewTitle(e.target.value)}
+                    placeholder="Enter pit title"
+                    className="px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-800 focus:border-purple-500 outline-none text-sm"
+                    onKeyPress={(e) => e.key === 'Enter' && createPit()}
+                    autoFocus
+                  />
+                )}
+                <button
+                  onClick={createPit}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary hover:bg-primary-dark transition-all"
+                >
+                  <Plus className="w-4 h-4" />
+                  {showTitleInput ? 'Create' : 'New Pit'}
+                </button>
+              </div>
             </div>
 
             <div className="space-y-3">
@@ -253,7 +277,17 @@ export default function Dashboard() {
                 </div>
 
                 <div className="space-y-4">
-                  <h3 className="text-xl font-bold">Messages ({messages.length})</h3>
+                  <div className='width-full justify-between flex items-center mb-4'>
+                    <h3 className="text-xl font-bold">Messages ({messages.length})</h3>
+                    {messages.length > 0 && (
+                      <button 
+                        onClick={() => navigate(`/view-message/${selectedPitData.id}`)}
+                        className='text-lg font-bold bg-primary hover:bg-primary-dark p-2 rounded-xl transition-all'
+                      >
+                        View Messages
+                      </button>
+                    )}
+                  </div>
                   
                   {messages.length === 0 ? (
                     <div className="text-center py-12 text-zinc-400">
@@ -261,7 +295,7 @@ export default function Dashboard() {
                     </div>
                   ) : (
                     messages.map((message) => (
-                      <div key={message.id} className="p-6 rounded-xl bg-white/5 backdrop-blur-sm border border-zinc-800">
+                      <div key={message.id} className="p-6 rounded-xl bg-white/5 backdrop-blur-sm border border-zinc-800 hover:border-purple-500 active:border-purple-800 transition-all">
                         <div className="flex justify-between items-start mb-4">
                           <div className="flex items-center gap-2">
                             {message.is_professional && (

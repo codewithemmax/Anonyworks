@@ -1,0 +1,181 @@
+import { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ArrowLeft, ArrowRight, Eye, EyeOff, Clock, Sparkles } from 'lucide-react';
+import { api } from '../utils/api';
+
+interface Message {
+  id: number;
+  original_message: string;
+  processed_message: string;
+  is_professional: boolean;
+  created_at: string;
+}
+
+export default function ViewMessage() {
+  const { pitId } = useParams<{ pitId: string }>();
+  const navigate = useNavigate();
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [showOriginal, setShowOriginal] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!api.isAuthenticated()) {
+      navigate('/login');
+      return;
+    }
+    fetchMessages();
+  }, [pitId, navigate]);
+
+  const fetchMessages = async () => {
+    try {
+      const response = await api.fetch(`/api/pit/${pitId}/messages`);
+      const data = await response.json();
+      
+      if (data.success) {
+        setMessages(data.messages);
+      } else {
+        navigate('/dashboard');
+      }
+    } catch (error) {
+      navigate('/dashboard');
+    }
+    setLoading(false);
+  };
+
+  const nextMessage = () => {
+    if (currentIndex < messages.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+      setShowOriginal(false);
+    }
+  };
+
+  const prevMessage = () => {
+    if (currentIndex > 0) {
+      setCurrentIndex(currentIndex - 1);
+      setShowOriginal(false);
+    }
+  };
+
+  const currentMessage = messages[currentIndex];
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-xl">Loading messages...</div>
+      </div>
+    );
+  }
+
+  if (messages.length === 0) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-6">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold mb-4">No Messages Yet</h2>
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="px-6 py-3 rounded-lg bg-primary hover:bg-primary-dark transition-all"
+          >
+            Back to Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* Header */}
+      <div className="flex justify-between items-center p-6 border-b border-zinc-800">
+        <button
+          onClick={() => navigate('/dashboard')}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg border border-zinc-700 hover:border-purple-500 transition-all"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back
+        </button>
+        
+        <h1 className="text-xl font-bold">Message {currentIndex + 1} of {messages.length}</h1>
+
+        {currentMessage?.is_professional && (
+          <button
+            onClick={() => setShowOriginal(!showOriginal)}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 transition-all"
+          >
+            {showOriginal ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            {showOriginal ? 'Original' : 'Professional'}
+          </button>
+        )}
+      </div>
+
+      {/* Large Message Display */}
+      <div className="flex-1 flex items-center justify-center p-8">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={`${currentIndex}-${showOriginal}`}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="w-full max-w-4xl text-center"
+          >
+            <div className="p-12 rounded-2xl bg-white/5 backdrop-blur-sm border border-zinc-800">
+              {/* Badges */}
+              <div className="flex justify-center items-center gap-4 mb-8">
+                {currentMessage.is_professional && (
+                  <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/20 text-purple-300">
+                    <Sparkles className="w-4 h-4" />
+                    Professional Mode
+                  </div>
+                )}
+                <div className="flex items-center gap-2 text-zinc-400">
+                  <Clock className="w-4 h-4" />
+                  {new Date(currentMessage.created_at).toLocaleDateString()}
+                </div>
+              </div>
+
+              {/* Large Text */}
+              <p className="text-3xl md:text-4xl lg:text-5xl font-light leading-relaxed text-white">
+                {showOriginal ? currentMessage.original_message : (currentMessage.processed_message || currentMessage.original_message)}
+              </p>
+            </div>
+          </motion.div>
+        </AnimatePresence>
+      </div>
+
+      {/* Navigation */}
+      <div className="flex justify-between items-center p-6 border-t border-zinc-800">
+        <button
+          onClick={prevMessage}
+          disabled={currentIndex === 0}
+          className="flex items-center gap-2 px-6 py-3 rounded-lg bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 transition-all"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Previous
+        </button>
+
+        {/* Progress Dots */}
+        <div className="flex gap-2">
+          {messages.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => setCurrentIndex(index)}
+              className={`w-3 h-3 rounded-full transition-all ${
+                index === currentIndex ? 'bg-purple-500' : 'bg-zinc-700'
+              }`}
+            />
+          ))}
+        </div>
+
+        <button
+          onClick={nextMessage}
+          disabled={currentIndex === messages.length - 1}
+          className="flex items-center gap-2 px-6 py-3 rounded-lg bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 transition-all"
+        >
+          Next
+          <ArrowRight className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  );
+}
