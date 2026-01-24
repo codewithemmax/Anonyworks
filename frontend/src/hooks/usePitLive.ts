@@ -12,7 +12,9 @@ export const usePitLive = (pitId: string | undefined, initialMessages: any[]) =>
     if (!pitId) return;
 
     // 1. Point to your backend port (3001)
-    const socket = new WebSocket('ws://localhost:3001');
+    // In usePitLive.ts
+    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    const socket = new WebSocket(`${protocol}://localhost:3001`);
 
     socket.onopen = () => {
       // 2. Tell the backend which Pit we are watching
