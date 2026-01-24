@@ -18,7 +18,11 @@ const server = createServer(app);
 const wss = new WebSocketServer({ server });
 const PORT = process.env.PORT || 3001;
 
-app.use(cors());
+app.use(cors({
+  origin: 'https://anonyworks.vercel.app', // No trailing slash!
+  credentials: true
+}));
+
 app.use(express.json());
 // Health Check Endpoint
 app.get('/health', (req, res) => {
