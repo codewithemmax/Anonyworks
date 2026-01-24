@@ -20,6 +20,10 @@ const PORT = process.env.PORT || 3001;
 
 app.use(cors());
 app.use(express.json());
+// Health Check Endpoint
+app.get('/health', (req, res) => {
+  res.status(200).send('OK');
+});
 
 // WebSocket connections by pit ID
 const pitConnections = new Map();
