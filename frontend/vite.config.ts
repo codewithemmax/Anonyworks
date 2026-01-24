@@ -13,7 +13,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:3001', // Your Express Port
+        target: 'https://anonyworks.onrender.com', // Your Express Port
         changeOrigin: true,
         secure: false,
         // This removes the ECONNRESET by ensuring the proxy 
