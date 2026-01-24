@@ -13,8 +13,12 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:3001',
+        target: 'http://localhost:3001', // Your Express Port
         changeOrigin: true,
+        secure: false,
+        // This removes the ECONNRESET by ensuring the proxy 
+        // waits for the backend to be ready
+        rewrite: (path) => path.replace(/^\/api/, '/api'), 
       },
     },
   },

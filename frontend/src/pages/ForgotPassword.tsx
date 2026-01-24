@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from '../components/Toast';
 
 export default function ForgotPassword() {
   const [step, setStep] = useState(1);
@@ -26,21 +27,21 @@ export default function ForgotPassword() {
       if (data.success) {
         setStep(2);
       } else {
-        alert(data.message);
+        toast.error(data.message);
       }
     } catch (error) {
-      alert('Failed to send OTP. Please try again.');
+      toast.error('Failed to send OTP. Please try again.');
     }
   };
 
   const handleResetPassword = async () => {
     if (newPassword !== confirmPassword) {
-      alert('Passwords do not match!');
+      toast.error('Passwords do not match!');
       return;
     }
 
     if (newPassword.length < 6) {
-      alert('Password must be at least 6 characters!');
+      toast.error('Password must be at least 6 characters!');
       return;
     }
 
@@ -54,13 +55,13 @@ export default function ForgotPassword() {
       const data = await response.json();
       
       if (data.success) {
-        alert('Password reset successful! Please login.');
+        toast.success('Password reset successful! Please login.');
         navigate('/login');
       } else {
-        alert(data.message);
+        toast.error(data.message);
       }
     } catch (error) {
-      alert('Password reset failed. Please try again.');
+      toast.error('Password reset failed. Please try again.');
     }
   };
 

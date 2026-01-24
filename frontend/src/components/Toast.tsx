@@ -82,7 +82,7 @@ export const ToastContainer = () => {
           key={toast.id}
           style={{ top: `${1 + index * 5}rem` }}
           className="fixed right-4 z-50"
-        >
+        > 
           <Toast
             message={toast.message}
             type={toast.type}

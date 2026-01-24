@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Mail, Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../utils/supabase';
+import { toast } from '../components/Toast';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -21,11 +22,12 @@ export default function Login() {
         }
       });
       
+      
       if (error) {
-        alert(error.message);
+        toast.error(error.message);
       }
     } catch (error) {
-      alert('Google login failed. Please try again.');
+      toast.error('Google login failed. Please try again.');
     }
   };
 
@@ -46,10 +48,10 @@ export default function Login() {
           navigate('/dashboard');
         }
       } else {
-        alert(data.message);
+        toast.error(data.message);
       }
     } catch (error) {
-      alert('Login failed. Please try again.');
+      toast.error('Login failed. Please try again.');
     }
   };
 
@@ -68,10 +70,10 @@ export default function Login() {
         localStorage.setItem('user', JSON.stringify(data.user));
         navigate('/dashboard');
       } else {
-        alert(data.message);
+        toast.error(data.message);
       }
     } catch (error) {
-      alert('Verification failed. Please try again.');
+      toast.error('Verification failed. Please try again.');
     }
   };
 

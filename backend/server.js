@@ -2,22 +2,78 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import bcrypt from 'bcrypt';
+
 import * as brevo from '@getbrevo/brevo';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import { WebSocketServer } from 'ws';
+import { createServer } from 'http';
 import { pool } from './db.js';
 import { generateToken, verifyToken } from './auth.js';
 
 dotenv.config();
 
 const app = express();
+const server = createServer(app);
+const wss = new WebSocketServer({ server });
 const PORT = process.env.PORT || 3001;
 
 app.use(cors());
 app.use(express.json());
 
+// WebSocket connections by pit ID
+const pitConnections = new Map();
+
+// Initialize Gemini AI
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+
+// Function to check if email is from a company domain
+const isCompanyEmail = (email) => {
+  const domain = email.split('@')[1]?.toLowerCase();
+  const personalDomains = [
+    'gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com',
+    'aol.com', 'icloud.com', 'protonmail.com', 'yandex.com'
+  ];
+  return !personalDomains.includes(domain);
+};
+
+// Function to refine message with Gemini
+const refineMessage = async (message) => {
+  if (!process.env.GEMINI_API_KEY) {
+    return message;
+  }
+
+  try {
+    const prompt = `Please refine this feedback message to be professional, constructive, and appropriate for workplace communication. Keep the core message and intent, but make it polite and professional. If it's already professional, return it exactly as is:
+
+"${message}"`;
+    
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const refinedMessage = response.text().trim();
+    
+    // Check if message was actually changed
+    if (refinedMessage.toLowerCase() !== message.toLowerCase()) {
+      return `${refinedMessage}
+
+*This message has been refined by Gemini AI for professional communication.*`;
+    }
+    
+    return refinedMessage;
+  } catch (error) {
+    console.error('Gemini API error:', error);
+    return message;
+  }
+};
+
 // Initialize Brevo API
+// 1. Change your import to destructure exactly what you need
+
+// ... (Rest of your imports)
+
+// 2. Initialize using the direct class name
 const apiInstance = new brevo.TransactionalEmailsApi();
 apiInstance.setApiKey(brevo.TransactionalEmailsApiApiKeys.apiKey, process.env.BREVO_API_KEY);
-
 // Function to send OTP email
 const sendOTPEmail = async (email, otp) => {
   if (!process.env.BREVO_API_KEY) {
@@ -53,18 +109,74 @@ const sendOTPEmail = async (email, otp) => {
     console.log(`OTP for ${email}: ${otp}`);
   }
 };
-
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ message: 'Backend is running!' });
 });
 
-// Signup endpoint
-app.post('/api/auth/signup', async (req, res) => {
-  const { email, password, name, userType } = req.body;
+// Send OTP for signup
+app.post('/api/auth/send-otp', async (req, res) => {
+  const { email } = req.body;
 
   try {
     // Check if user exists
+    const existingUser = await pool.query(
+      'SELECT * FROM users WHERE email = $1',
+      [email]
+    );
+
+    if (existingUser.rows.length > 0) {
+      return res.status(400).json({ success: false, message: 'Email already registered' });
+    }
+
+    // Generate OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+
+    // Delete any existing OTP for this email
+    await pool.query('DELETE FROM otp_codes WHERE email = $1', [email]);
+
+    await pool.query(
+      'INSERT INTO otp_codes (email, code, expires_at) VALUES ($1, $2, $3)',
+      [email, otp, expiresAt]
+    );
+
+    await sendOTPEmail(email, otp);
+
+    res.json({ success: true, message: 'OTP sent to email' });
+  } catch (error) {
+    console.error('Send OTP error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// Signup endpoint
+app.post('/api/auth/signup', async (req, res) => {
+  const { email, password, name, userType, otp } = req.body;
+
+  try {
+    // Verify OTP first
+    const otpResult = await pool.query(
+      'SELECT * FROM otp_codes WHERE email = $1 AND code = $2 AND expires_at > NOW() ORDER BY created_at DESC LIMIT 1',
+      [email, otp]
+    );
+
+    if (otpResult.rows.length === 0) {
+      return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
+    }
+
+    // Delete used OTP
+    await pool.query('DELETE FROM otp_codes WHERE email = $1', [email]);
+
+    // Validate company email for company accounts
+    if (userType === 'company' && !isCompanyEmail(email)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Please use a company email address for business accounts' 
+      });
+    }
+
+    // Check if user exists (double check)
     const existingUser = await pool.query(
       'SELECT * FROM users WHERE email = $1',
       [email]
@@ -79,26 +191,15 @@ app.post('/api/auth/signup', async (req, res) => {
 
     // Insert user
     const result = await pool.query(
-      'INSERT INTO users (email, password_hash, name, user_type) VALUES ($1, $2, $3, $4) RETURNING id, email, name, user_type',
-      [email, passwordHash, name, userType]
+      'INSERT INTO users (email, password_hash, name, user_type, is_verified) VALUES ($1, $2, $3, $4, $5) RETURNING id, email, name, user_type',
+      [email, passwordHash, name, userType, true]
     );
 
     const user = result.rows[0];
 
-    // Generate OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
-
-    await pool.query(
-      'INSERT INTO otp_codes (email, code, expires_at) VALUES ($1, $2, $3)',
-      [email, otp, expiresAt]
-    );
-
-    await sendOTPEmail(email, otp);
-
     res.json({ 
       success: true, 
-      message: 'User created. OTP sent to email',
+      message: 'Account created successfully',
       userId: user.id 
     });
   } catch (error) {
@@ -261,6 +362,47 @@ app.post('/api/auth/verify-otp', async (req, res) => {
   }
 });
 
+// Google OAuth endpoint
+app.post('/api/auth/google', async (req, res) => {
+  const { email, name, googleId } = req.body;
+
+  try {
+    // Check if user exists
+    let result = await pool.query(
+      'SELECT * FROM users WHERE email = $1',
+      [email]
+    );
+
+    let user;
+    if (result.rows.length === 0) {
+      // Create new user
+      const insertResult = await pool.query(
+        'INSERT INTO users (email, password_hash, name, user_type, is_verified) VALUES ($1, $2, $3, $4, $5) RETURNING id, email, name, user_type',
+        [email, 'google_oauth', name, 'individual', true]
+      );
+      user = insertResult.rows[0];
+    } else {
+      user = result.rows[0];
+    }
+
+    const token = generateToken(user.id, user.email);
+
+    res.json({
+      success: true,
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        userType: user.user_type
+      }
+    });
+  } catch (error) {
+    console.error('Google auth error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
 // Protected route example
 app.get('/api/user/profile', verifyToken, async (req, res) => {
   try {
@@ -363,18 +505,72 @@ app.post('/api/pit/:id/message', async (req, res) => {
     let processedMessage = message;
     
     if (isProfessional) {
-      // TODO: Integrate with Gemini API
-      processedMessage = `[Professional Mode] ${message}`;
+      processedMessage = await refineMessage(message);
     }
 
-    await pool.query(
-      'INSERT INTO messages (pit_id, original_message, processed_message, is_professional) VALUES ($1, $2, $3, $4)',
+    const result = await pool.query(
+      'INSERT INTO messages (pit_id, original_message, processed_message, is_professional) VALUES ($1, $2, $3, $4) RETURNING id, created_at',
       [id, message, processedMessage, isProfessional]
     );
+
+    const newMessage = {
+      id: result.rows[0].id,
+      original_message: message,
+      processed_message: processedMessage,
+      is_professional: isProfessional,
+      created_at: result.rows[0].created_at
+    };
+
+    // Broadcast to connected clients
+    broadcastToPit(id, newMessage);
 
     res.json({ success: true, message: 'Message sent anonymously' });
   } catch (error) {
     console.error('Submit message error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// End pit session (protected)
+app.post('/api/pit/:id/end', verifyToken, async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const result = await pool.query(
+      'UPDATE pits SET is_active = FALSE WHERE id = $1 AND creator_id = $2 RETURNING id',
+      [id, req.user.userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Pit not found' });
+    }
+
+    res.json({ success: true, message: 'Pit session ended' });
+  } catch (error) {
+    console.error('End pit error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// Delete pit (protected)
+app.delete('/api/pit/:id', verifyToken, async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    await pool.query('DELETE FROM messages WHERE pit_id = $1', [id]);
+    
+    const result = await pool.query(
+      'DELETE FROM pits WHERE id = $1 AND creator_id = $2 RETURNING id',
+      [id, req.user.userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Pit not found' });
+    }
+
+    res.json({ success: true, message: 'Pit deleted' });
+  } catch (error) {
+    console.error('Delete pit error:', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
@@ -389,6 +585,44 @@ setInterval(async () => {
   }
 }, 60000); // Every minute
 
-app.listen(PORT, () => {
+// WebSocket connection handler
+wss.on('connection', (ws, req) => {
+  ws.on('message', (message) => {
+    try {
+      const data = JSON.parse(message);
+      if (data.type === 'join' && data.pitId) {
+        ws.pitId = data.pitId;
+        if (!pitConnections.has(data.pitId)) {
+          pitConnections.set(data.pitId, new Set());
+        }
+        pitConnections.get(data.pitId).add(ws);
+      }
+    } catch (error) {
+      console.error('WebSocket message error:', error);
+    }
+  });
+
+  ws.on('close', () => {
+    if (ws.pitId && pitConnections.has(ws.pitId)) {
+      pitConnections.get(ws.pitId).delete(ws);
+      if (pitConnections.get(ws.pitId).size === 0) {
+        pitConnections.delete(ws.pitId);
+      }
+    }
+  });
+});
+
+// Broadcast new message to pit subscribers
+const broadcastToPit = (pitId, message) => {
+  if (pitConnections.has(pitId)) {
+    pitConnections.get(pitId).forEach(ws => {
+      if (ws.readyState === ws.OPEN) {
+        ws.send(JSON.stringify({ type: 'newMessage', message }));
+      }
+    });
+  }
+};
+
+server.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });

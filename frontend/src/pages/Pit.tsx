@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Sparkles, Send, Shield, LogIn, UserPlus } from 'lucide-react';
+import { toast } from '../components/Toast';
 
 export default function Pit() {
   const { id } = useParams<{ id: string }>();
@@ -28,10 +29,10 @@ export default function Pit() {
         setSubmitted(true);
         setMessage('');
       } else {
-        alert(data.message);
+        toast.error(data.message);
       }
     } catch (error) {
-      alert('Failed to send message. Please try again.');
+      toast.error('Failed to send message. Please try again.');
     }
     setIsSubmitting(false);
   };
