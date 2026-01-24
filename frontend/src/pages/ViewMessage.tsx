@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, ArrowRight, Eye, EyeOff, Clock, Sparkles } from 'lucide-react';
 import { api } from '../utils/api';
+import { usePitLive } from '../hooks/usePitLive';
 
 interface Message {
   id: number;
@@ -13,12 +14,21 @@ interface Message {
 }
 
 export default function ViewMessage() {
-  const { pitId } = useParams<{ pitId: string }>();
   const navigate = useNavigate();
-  const [messages, setMessages] = useState<Message[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showOriginal, setShowOriginal] = useState(false);
   const [loading, setLoading] = useState(true);
+  // Inside your ViewMessage component
+  const { pitId } = useParams<{ pitId: string }>();
+
+  // 1. Rename your fetched state to 'history' or keep as is
+  const [messages, setMessages] = useState<Message[]>([]);
+
+  // 2. Add the live hook. It will manage the "real-time" version of the array.
+  const liveMessages = usePitLive(pitId, messages);
+
+  // 3. Update your 'currentMessage' reference to use the live array
+  const currentMessage = liveMessages[currentIndex];
 
   useEffect(() => {
     if (!api.isAuthenticated()) {
@@ -45,7 +55,7 @@ export default function ViewMessage() {
   };
 
   const nextMessage = () => {
-    if (currentIndex < messages.length - 1) {
+    if (currentIndex < liveMessages.length - 1) {
       setCurrentIndex(currentIndex + 1);
       setShowOriginal(false);
     }
@@ -58,17 +68,15 @@ export default function ViewMessage() {
     }
   };
 
-  const currentMessage = messages[currentIndex];
-
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-xl">Loading messages...</div>
+        <div className="text-xl">Loading liveMessages...</div>
       </div>
     );
   }
 
-  if (messages.length === 0) {
+  if (liveMessages.length === 0) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-6">
         <div className="text-center">
@@ -96,7 +104,7 @@ export default function ViewMessage() {
           Back
         </button>
         
-        <h1 className="text-xl font-bold">Message {currentIndex + 1} of {messages.length}</h1>
+        <h1 className="text-xl font-bold">Message {currentIndex + 1} of {liveMessages.length}</h1>
 
         {currentMessage?.is_professional && (
           <button
@@ -156,7 +164,7 @@ export default function ViewMessage() {
 
         {/* Progress Dots */}
         <div className="flex gap-2">
-          {messages.map((_, index) => (
+          {liveMessages.map((_, index) => (
             <button
               key={index}
               onClick={() => setCurrentIndex(index)}
@@ -169,7 +177,7 @@ export default function ViewMessage() {
 
         <button
           onClick={nextMessage}
-          disabled={currentIndex === messages.length - 1}
+          disabled={currentIndex === liveMessages.length - 1}
           className="flex items-center gap-2 px-6 py-3 rounded-lg bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 transition-all"
         >
           Next

@@ -5,6 +5,7 @@ import { LogOut, Plus, Link, Copy, Eye, EyeOff, Clock, Trash2, StopCircle, Share
 import { api } from '../utils/api';
 import { toast } from '../components/Toast';
 import { supabase } from '../utils/supabase';
+import { usePitLive } from '../hooks/usePitLive.ts'
 
 interface Pit {
   id: string;
@@ -25,14 +26,18 @@ interface Message {
 export default function Dashboard() {
   const [user, setUser] = useState<any>(null);
   const [pits, setPits] = useState<Pit[]>([]);
-  const [selectedPit, setSelectedPit] = useState<string | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
   const [showOriginal, setShowOriginal] = useState<{[key: number]: boolean}>({});
   const [showTitleInput, setShowTitleInput] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [confirmAction, setConfirmAction] = useState<{type: 'end' | 'delete', pitId: string} | null>(null);
   const navigate = useNavigate();
 
+
+  const [selectedPit, setSelectedPit] = useState<string | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+
+
+  const liveMessages = usePitLive(selectedPit || undefined, messages);
   useEffect(() => {
 
     // Handle Google OAuth redirect
@@ -374,8 +379,8 @@ export default function Dashboard() {
 
                 <div className="space-y-4">
                   <div className='width-full justify-between flex items-center mb-4'>
-                    <h3 className="text-xl font-bold">Messages ({messages.length})</h3>
-                    {messages.length > 0 && (
+                    <h3 className="text-xl font-bold">Messages ({liveMessages.length})</h3>
+                    {liveMessages.length > 0 && (
                       <button 
                         onClick={() => navigate(`/view-message/${selectedPitData.id}`)}
                         className='text-lg font-bold bg-primary hover:bg-primary-dark p-3 rounded-xl transition-all'
@@ -385,12 +390,12 @@ export default function Dashboard() {
                     )}
                   </div>
                   
-                  {messages.length === 0 ? (
+                  {liveMessages.length === 0 ? (
                     <div className="text-center py-12 text-zinc-400">
                       <p>No messages yet. Share your pit link to start receiving feedback!</p>
                     </div>
                   ) : (
-                    messages.map((message) => (
+                    liveMessages.map((message) => (
                       <div 
                         key={message.id} 
                         onClick={() => navigate(`/view-message/${selectedPitData.id}`)}
@@ -460,7 +465,7 @@ export default function Dashboard() {
             <p className="text-zinc-400 mb-6">
               {confirmAction.type === 'end' 
                 ? 'This will stop accepting new messages but keep existing ones.' 
-                : 'This will permanently delete the pit and all messages.'}
+                : 'This will permanently delete the pit and all liveMessages.'}
             </p>
             <div className="flex gap-3">
               <button

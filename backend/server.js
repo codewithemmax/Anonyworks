@@ -587,6 +587,7 @@ setInterval(async () => {
 
 // WebSocket connection handler
 wss.on('connection', (ws, req) => {
+  console.log("New WebSocket connection attempt")
   ws.on('message', (message) => {
     try {
       const data = JSON.parse(message);
@@ -596,6 +597,7 @@ wss.on('connection', (ws, req) => {
           pitConnections.set(data.pitId, new Set());
         }
         pitConnections.get(data.pitId).add(ws);
+        console.log("User added")
       }
     } catch (error) {
       console.error('WebSocket message error:', error);
