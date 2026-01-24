@@ -4,7 +4,8 @@ import dotenv from 'dotenv';
 import bcrypt from 'bcrypt';
 
 import * as brevo from '@getbrevo/brevo';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
+
 import { WebSocketServer } from 'ws';
 import { createServer } from 'http';
 import { pool } from './db.js';
@@ -24,9 +25,9 @@ app.use(express.json());
 const pitConnections = new Map();
 
 // Initialize Gemini AI
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-
+const ai = new GoogleGenAI({
+  apiKey: process.env.GEMINI_API_KEY 
+});
 // Function to check if email is from a company domain
 const isCompanyEmail = (email) => {
   const domain = email.split('@')[1]?.toLowerCase();
@@ -48,8 +49,10 @@ const refineMessage = async (message) => {
 
 "${message}"`;
     
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
+    const response = await ai.models.generateContent({
+    model: 'gemini-3-flash-preview',
+    conntents: prompt
+  })
     const refinedMessage = response.text().trim();
     
     // Check if message was actually changed
