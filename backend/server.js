@@ -60,7 +60,7 @@ const refineMessage = async (message) => {
     
     const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    conntents: prompt
+    contents: prompt
   })
     const refinedMessage = response.text().trim();
     
