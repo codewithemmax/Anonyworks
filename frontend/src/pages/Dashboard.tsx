@@ -47,7 +47,7 @@ export default function Dashboard() {
       if (session) {
         // Create or get user from our backend
         try {
-          const response = await fetch('/api/auth/google', {
+          const response = await api.fetch('/api/auth/google', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

@@ -4,6 +4,7 @@ import { User, Building2, Eye, EyeOff, Mail } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import UserTypeCard from '../components/UserTypeCard';
 import { toast } from '../components/Toast';
+import { api } from '../utils/api';
 
 type UserType = 'individual' | 'company' | null;
 
@@ -36,7 +37,7 @@ export default function Signup() {
       }
 
       try {
-        const response = await fetch('/api/auth/send-otp', {
+        const response = await api.fetch('/api/auth/send-otp', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email: formData.email })
@@ -58,7 +59,7 @@ export default function Signup() {
 
   const handleVerifyOTP = async () => {
     try {
-      const response = await fetch('/api/auth/signup', {
+      const response = await api.fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { api } from '../utils/api';
 import { toast } from '../components/Toast';
 
 export default function ForgotPassword() {
@@ -16,7 +17,7 @@ export default function ForgotPassword() {
 
   const handleSendOTP = async () => {
     try {
-      const response = await fetch('/api/auth/forgot-password', {
+      const response = await api.fetch('/api/auth/forgot-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email })
@@ -46,7 +47,7 @@ export default function ForgotPassword() {
     }
 
     try {
-      const response = await fetch('/api/auth/reset-password', {
+      const response = await api.fetch('/api/auth/reset-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, otp, newPassword })

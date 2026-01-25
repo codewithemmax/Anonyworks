@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Sparkles, Send, Shield, LogIn, UserPlus } from 'lucide-react';
 import { toast } from '../components/Toast';
+import { api } from '../utils/api';
 
 export default function Pit() {
   const { id } = useParams<{ id: string }>();
@@ -17,7 +18,7 @@ export default function Pit() {
 
     setIsSubmitting(true);
     try {
-      const response = await fetch(`/api/pit/${id}/message`, {
+      const response = await api.fetch(`/api/pit/${id}/message`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message, isProfessional })
