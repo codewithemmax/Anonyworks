@@ -1,6 +1,6 @@
 // Get the base URL from your environment variables
 // In production, this will be your Render URL
-const BASE_URL = import.meta.env.VITE_API_URL || 'https://anonyworks.onrender.com';
+const BASE_URL = 'https://anonyworks.onrender.com';
 
 export const api = {
   getToken: () => localStorage.getItem('token'),
