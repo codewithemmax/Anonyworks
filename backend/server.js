@@ -19,8 +19,9 @@ const wss = new WebSocketServer({ server });
 const PORT = process.env.PORT || 3001;
 
 app.use(cors({
-  origin: 'https://anonyworks.vercel.app', // No trailing slash!
-  credentials: true
+  origin: 'https://anonyworks.vercel.app', // Your actual frontend URL
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'] // Ensure OPTIONS is here
 }));
 
 app.use(express.json());
