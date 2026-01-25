@@ -19,8 +19,10 @@ const wss = new WebSocketServer({ server });
 const PORT = process.env.PORT || 3001;
 
 app.use(cors({
-  origin: '*', // No trailing slash!
-  credentials: true
+  origin: '*',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 app.use(express.json());
