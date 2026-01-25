@@ -19,7 +19,7 @@ const wss = new WebSocketServer({ server });
 const PORT = process.env.PORT || 3001;
 
 app.use(cors({
-  origin: 'https://anonyworks.vercel.app', // No trailing slash!
+  origin: '*', // No trailing slash!
   credentials: true
 }));
 
