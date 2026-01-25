@@ -19,7 +19,12 @@ const wss = new WebSocketServer({ server });
 const PORT = process.env.PORT || 3001;
 
 app.use(cors({
-  origin: 'https://anonyworks.vercel.app', // No trailing slash!
+  origin: [
+    'https://anonyworks.vercel.app',
+    'https://anonyworks-git-main-codewithemmaxs-projects.vercel.app',
+    'https://anonyworks-codewithemmaxs-projects.vercel.app',
+    /^https:\/\/anonyworks.*\.vercel\.app$/
+  ],
   credentials: true
 }));
 
@@ -59,7 +64,7 @@ const refineMessage = async (message) => {
     
     const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    conntents: prompt
+    contents: prompt
   })
     const refinedMessage = response.text().trim();
     
