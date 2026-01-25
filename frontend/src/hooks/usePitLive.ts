@@ -13,9 +13,8 @@ export const usePitLive = (pitId: string | undefined, initialMessages: any[]) =>
 
     // 1. Point to your backend port (3001)
     // In usePitLive.ts
-     const host = 'anonyworks.onrender.com'; // Your Render host
-     const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-     const socket = new WebSocket(`${protocol}://anonyworks.onrender.com`);
+    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    const socket = new WebSocket(`${protocol}://anonyworks.onrender.com`);
 
     socket.onopen = () => {
       // 2. Tell the backend which Pit we are watching
