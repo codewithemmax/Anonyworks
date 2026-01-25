@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Mail, Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../utils/supabase';
+import { api } from '../utils/api';
 import { toast } from '../components/Toast';
 
 export default function Login() {
@@ -33,9 +34,8 @@ export default function Login() {
 
   const handleSendOTP = async () => {
     try {
-      const response = await fetch('/api/auth/login', {
+      const response = await api.fetch('/api/auth/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
       });
       
@@ -57,9 +57,8 @@ export default function Login() {
 
   const handleVerifyOTP = async () => {
     try {
-      const response = await fetch('/api/auth/verify-otp', {
+      const response = await api.fetch('/api/auth/verify-otp', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, otp })
       });
       
