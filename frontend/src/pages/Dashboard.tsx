@@ -376,7 +376,7 @@ export default function Dashboard() {
                   </div>
                   <div className="flex items-center gap-2 p-3 bg-zinc-900 rounded-lg">
                     <Link className="w-4 h-4 text-zinc-400" />
-                    <code className="text-sm text-zinc-300">{window.location.origin}/pit/{selectedPitData.id}</code>
+                    <code className="text-sm text-zinc-300 sm:whitespace-nowrap">{window.location.origin}/pit/{selectedPitData.id}</code>
                   </div>
                 </div>
 

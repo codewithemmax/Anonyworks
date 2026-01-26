@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 import bcrypt from 'bcrypt';
 
 import * as brevo from '@getbrevo/brevo';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 
 import { WebSocketServer } from 'ws';
 import { createServer } from 'http';
@@ -35,7 +35,7 @@ app.get('/health', (req, res) => {
 const pitConnections = new Map();
 
 // Initialize Gemini AI
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const genAI = new GoogleGenAI(process.env.GEMINI_API_KEY);
 // Function to check if email is from a company domain
 const isCompanyEmail = (email) => {
   const domain = email.split('@')[1]?.toLowerCase();
@@ -53,14 +53,12 @@ const refineMessage = async (message) => {
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
-    
     const prompt = `Please refine this feedback message to be professional, constructive, and appropriate for workplace communication. Keep the core message and intent, but make it polite and professional. If it's already professional, return it exactly as is:
 
 "${message}"`;
-    
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
+    const response = genAI.models.generateContent(
+      { model: 'gemini-3-flash-preview' },
+      { contents:  prompt});
     const refinedMessage = response.text().trim();
     
     // Check if message was actually changed
