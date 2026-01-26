@@ -55,15 +55,14 @@ const refineMessage = async (message) => {
   }
 
   try {
+    const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    
     const prompt = `Please refine this feedback message to be professional, constructive, and appropriate for workplace communication. Keep the core message and intent, but make it polite and professional. If it's already professional, return it exactly as is:
 
 "${message}"`;
     
-    const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
-    contents: prompt
-  })
-    const refinedMessage = response.text().trim();
+    const result = await model.generateContent(prompt);
+    const refinedMessage = result.response.text().trim();
     
     // Check if message was actually changed
     if (refinedMessage.toLowerCase() !== message.toLowerCase()) {
