@@ -95,7 +95,7 @@ export default function ViewMessage() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
-      <div className="flex justify-between items-center p-6 border-b border-zinc-800">
+      <div className="flex flex-col sm:flex-row justify-between items-center p-4 sm:p-6 border-b border-zinc-800 gap-4">
         <button
           onClick={() => navigate('/dashboard')}
           className="flex items-center gap-2 px-4 py-2 rounded-lg border border-zinc-700 hover:border-purple-500 transition-all"
@@ -104,12 +104,12 @@ export default function ViewMessage() {
           Back
         </button>
         
-        <h1 className="text-xl font-bold">Message {currentIndex + 1} of {liveMessages.length}</h1>
+        <h1 className="text-lg sm:text-xl font-bold text-center">Message {currentIndex + 1} of {liveMessages.length}</h1>
 
         {currentMessage?.is_professional && (
           <button
             onClick={() => setShowOriginal(!showOriginal)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 transition-all"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 transition-all text-sm"
           >
             {showOriginal ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             {showOriginal ? 'Original' : 'Professional'}
@@ -118,7 +118,7 @@ export default function ViewMessage() {
       </div>
 
       {/* Large Message Display */}
-      <div className="flex-1 flex items-center justify-center p-8">
+      <div className="flex-1 flex items-center justify-center p-4 sm:p-8">
         <AnimatePresence mode="wait">
           <motion.div
             key={`${currentIndex}-${showOriginal}`}
@@ -127,23 +127,23 @@ export default function ViewMessage() {
             exit={{ opacity: 0, y: -20 }}
             className="w-full max-w-4xl text-center"
           >
-            <div className="p-12 rounded-2xl bg-white/5 backdrop-blur-sm border border-zinc-800">
+            <div className="p-6 sm:p-12 rounded-2xl bg-white/5 backdrop-blur-sm border border-zinc-800">
               {/* Badges */}
-              <div className="flex justify-center items-center gap-4 mb-8">
+              <div className="flex flex-col sm:flex-row justify-center items-center gap-2 sm:gap-4 mb-6 sm:mb-8">
                 {currentMessage.is_professional && (
-                  <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/20 text-purple-300">
+                  <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/20 text-purple-300 text-sm">
                     <Sparkles className="w-4 h-4" />
                     Professional Mode
                   </div>
                 )}
-                <div className="flex items-center gap-2 text-zinc-400">
+                <div className="flex items-center gap-2 text-zinc-400 text-sm">
                   <Clock className="w-4 h-4" />
                   {new Date(currentMessage.created_at).toLocaleDateString()}
                 </div>
               </div>
 
               {/* Large Text */}
-              <p className="text-3xl md:text-4xl lg:text-5xl font-light leading-relaxed text-white">
+              <p className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-light leading-relaxed text-white break-words">
                 {showOriginal ? currentMessage.original_message : (currentMessage.processed_message || currentMessage.original_message)}
               </p>
             </div>
@@ -152,23 +152,23 @@ export default function ViewMessage() {
       </div>
 
       {/* Navigation */}
-      <div className="flex justify-between items-center p-6 border-t border-zinc-800">
+      <div className="flex flex-col sm:flex-row justify-between items-center p-4 sm:p-6 border-t border-zinc-800 gap-4">
         <button
           onClick={prevMessage}
           disabled={currentIndex === 0}
-          className="flex items-center gap-2 px-6 py-3 rounded-lg bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 transition-all"
+          className="flex items-center gap-2 px-4 sm:px-6 py-3 rounded-lg bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 transition-all text-sm sm:text-base order-2 sm:order-1"
         >
           <ArrowLeft className="w-4 h-4" />
           Previous
         </button>
 
         {/* Progress Dots */}
-        <div className="flex gap-2">
+        <div className="flex gap-2 order-1 sm:order-2 overflow-x-auto max-w-full px-2">
           {liveMessages.map((_, index) => (
             <button
               key={index}
               onClick={() => setCurrentIndex(index)}
-              className={`w-3 h-3 rounded-full transition-all ${
+              className={`w-3 h-3 rounded-full transition-all flex-shrink-0 ${
                 index === currentIndex ? 'bg-purple-500' : 'bg-zinc-700'
               }`}
             />
@@ -178,7 +178,7 @@ export default function ViewMessage() {
         <button
           onClick={nextMessage}
           disabled={currentIndex === liveMessages.length - 1}
-          className="flex items-center gap-2 px-6 py-3 rounded-lg bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 transition-all"
+          className="flex items-center gap-2 px-4 sm:px-6 py-3 rounded-lg bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 transition-all text-sm sm:text-base order-3"
         >
           Next
           <ArrowRight className="w-4 h-4" />

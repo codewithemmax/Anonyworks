@@ -170,7 +170,10 @@ export default function Dashboard() {
     return `${hours}h ${minutes}m remaining`;
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    // Sign out from Supabase (Google OAuth)
+    await supabase.auth.signOut();
+    // Clear local storage
     api.logout();
     navigate('/login');
   };
@@ -225,11 +228,11 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background">
-      <nav className="flex justify-between items-center p-6 max-w-7xl mx-auto border-b border-zinc-800">
-        <h1 className="text-2xl font-bold text-primary">AnonyWorks</h1>
+      <nav className="flex flex-col sm:flex-row justify-between items-center p-4 sm:p-6 max-w-7xl mx-auto border-b border-zinc-800 gap-4">
+        <h1 className="text-xl sm:text-2xl font-bold text-primary">AnonyWorks</h1>
         <button
           onClick={handleLogout}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg border border-zinc-700 hover:border-red-500 hover:text-red-500 transition-all"
+          className="flex items-center gap-2 px-4 py-2 rounded-lg border border-zinc-700 hover:border-red-500 hover:text-red-500 transition-all text-sm sm:text-base"
         >
           <LogOut className="w-4 h-4" />
           Logout
@@ -241,31 +244,31 @@ export default function Dashboard() {
         animate={{ opacity: 1, y: 0 }}
         className="max-w-7xl mx-auto px-6 py-8"
       >
-        <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold mb-2">Welcome, {user.name}!</h2>
+        <div className="text-center mb-6 sm:mb-8">
+          <h2 className="text-2xl sm:text-3xl font-bold mb-2">Welcome, {user.name}!</h2>
           <p className="text-zinc-400">Manage your feedback pits</p>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
           {/* Pits Sidebar */}
           <div className="lg:col-span-1">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold">Your Pits</h3>
-              <div className="flex flex-col gap-2">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
+              <h3 className="text-lg sm:text-xl font-bold">Your Pits</h3>
+              <div className="flex flex-col gap-2 w-full sm:w-auto">
                 {showTitleInput && (
                   <input
                     type="text"
                     value={newTitle}
                     onChange={(e) => setNewTitle(e.target.value)}
                     placeholder="Enter pit title"
-                    className="px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-800 focus:border-purple-500 outline-none text-sm"
+                    className="px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-800 focus:border-purple-500 outline-none text-sm w-full"
                     onKeyPress={(e) => e.key === 'Enter' && createPit()}
                     autoFocus
                   />
                 )}
                 <button
                   onClick={createPit}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary hover:bg-primary-dark transition-all"
+                  className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-primary hover:bg-primary-dark transition-all text-sm sm:text-base"
                 >
                   <Plus className="w-4 h-4" />
                   {showTitleInput ? 'Create' : 'New Pit'}

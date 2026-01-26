@@ -88,12 +88,12 @@ export default function Pit() {
           </div>
         </div>
 
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold mb-2">Anonymous Feedback</h1>
-          <p className="text-zinc-400">Share your honest thoughts. Your identity is protected.</p>
+        <div className="text-center mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2">Anonymous Feedback</h1>
+          <p className="text-zinc-400 text-sm sm:text-base">Share your honest thoughts. Your identity is protected.</p>
         </div>
 
-        <div className="p-8 rounded-xl bg-white/5 backdrop-blur-sm border border-zinc-800">
+        <div className="p-4 sm:p-6 md:p-8 rounded-xl bg-white/5 backdrop-blur-sm border border-zinc-800">
           <div className="space-y-6">
             <div>
               <label className="block text-sm font-medium mb-3">Your Message</label>
@@ -105,12 +105,12 @@ export default function Pit() {
               />
             </div>
 
-            <div className="flex items-center justify-between p-4 rounded-lg bg-zinc-900 border border-zinc-800">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 sm:p-4 rounded-lg bg-zinc-900 border border-zinc-800 gap-3">
               <div className="flex items-center gap-3">
                 <Sparkles className="w-5 h-5 text-purple-400" />
                 <div>
-                  <h3 className="font-medium">Professional Mode</h3>
-                  <p className="text-sm text-zinc-400">Let Gemini rewrite your feedback professionally</p>
+                  <h3 className="font-medium text-sm sm:text-base">Professional Mode</h3>
+                  <p className="text-xs sm:text-sm text-zinc-400">Let Gemini rewrite your feedback professionally</p>
                 </div>
               </div>
               <button
