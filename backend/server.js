@@ -37,36 +37,26 @@ const pitConnections = new Map();
 // Initialize Gemini AI
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 // Function to check if email is from a company domain
-const isCompanyEmail = (email) => {
-  const domain = email.split('@')[1]?.toLowerCase();
-  const personalDomains = [
-    'gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com',
-    'aol.com', 'icloud.com', 'protonmail.com', 'yandex.com'
-  ];
-  return !personalDomains.includes(domain);
-};
-
-// Function to refine message with Gemini
 const refineMessage = async (message) => {
-  if (!process.env.GEMINI_API_KEY) {
-    return message;
-  }
+  if (!process.env.GEMINI_API_KEY) return message;
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
-    
+    // 1. Use the model correctly
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }); // 'gemini-pro' is older; flash is faster/cheaper
+
     const prompt = `Please refine this feedback message to be professional, constructive, and appropriate for workplace communication. Keep the core message and intent, but make it polite and professional. If it's already professional, return it exactly as is:
 
 "${message}"`;
-    
-    const result = await model.generateContent(prompt);
-    const refinedMessage = result.response.text().trim();
-    
-    // Check if message was actually changed
-    if (refinedMessage.toLowerCase() !== message.toLowerCase()) {
-      return `${refinedMessage}
 
-*This message has been refined by Gemini AI for professional communication.*`;
+    // 2. Wrap the prompt in the correct content structure
+    const result = await model.generateContent(prompt);
+    
+    // 3. Await the text response correctly
+    const response = await result.response;
+    const refinedMessage = response.text().trim();
+    
+    if (refinedMessage.toLowerCase() !== message.toLowerCase()) {
+      return `${refinedMessage}\n\n*This message has been refined by Gemini AI for professional communication.*`;
     }
     
     return refinedMessage;
@@ -75,7 +65,6 @@ const refineMessage = async (message) => {
     return message;
   }
 };
-
 // Initialize Brevo API
 // 1. Change your import to destructure exactly what you need
 
