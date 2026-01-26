@@ -268,7 +268,7 @@ export default function Dashboard() {
                 )}
                 <button
                   onClick={createPit}
-                  className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-primary hover:bg-primary-dark transition-all text-sm sm:text-base"
+                  className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-primary hover:bg-primary-dark transition-all text-sm sm:text-base"
                 >
                   <Plus className="w-4 h-4" />
                   {showTitleInput ? 'Create' : 'New Pit'}
