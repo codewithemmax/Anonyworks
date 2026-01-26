@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Sparkles, Send, Shield, LogIn, UserPlus } from 'lucide-react';
+import { Sparkles, Send, Shield, LogIn, UserPlus, Home } from 'lucide-react';
 import { toast } from '../components/Toast';
 import { api } from '../utils/api';
 
@@ -12,6 +12,7 @@ export default function Pit() {
   const [isProfessional, setIsProfessional] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const isLoggedIn = api.isAuthenticated();
 
   const handleSubmit = async () => {
     if (!message.trim()) return;
@@ -70,22 +71,32 @@ export default function Pit() {
         className="w-full max-w-2xl"
       >
         <div className="flex justify-end mb-4">
-          <div className="flex gap-2">
+          {isLoggedIn ? (
             <button
-              onClick={() => navigate('/login')}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-zinc-700 hover:border-purple-500 transition-all text-sm"
-            >
-              <LogIn className="w-4 h-4" />
-              Login
-            </button>
-            <button
-              onClick={() => navigate('/signup')}
+              onClick={() => navigate('/dashboard')}
               className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary hover:bg-primary-dark transition-all text-sm"
             >
-              <UserPlus className="w-4 h-4" />
-              Sign Up
+              <Home className="w-4 h-4" />
+              Dashboard
             </button>
-          </div>
+          ) : (
+            <div className="flex gap-2">
+              <button
+                onClick={() => navigate('/login')}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg border border-zinc-700 hover:border-purple-500 transition-all text-sm"
+              >
+                <LogIn className="w-4 h-4" />
+                Login
+              </button>
+              <button
+                onClick={() => navigate('/signup')}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary hover:bg-primary-dark transition-all text-sm"
+              >
+                <UserPlus className="w-4 h-4" />
+                Sign Up
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="text-center mb-6 sm:mb-8">
