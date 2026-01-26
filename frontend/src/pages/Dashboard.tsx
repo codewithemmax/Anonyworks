@@ -228,7 +228,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background">
-      <nav className="flex flex-col sm:flex-row justify-between items-center p-4 sm:p-6 max-w-7xl mx-auto border-b border-zinc-800 gap-4">
+      <nav className="flex flex-row sm:flex-row justify-between items-center p-4 sm:p-6 max-w-7xl mx-auto border-b border-zinc-800 gap-4">
         <h1 className="text-xl sm:text-2xl font-bold text-primary">AnonyWorks</h1>
         <button
           onClick={handleLogout}
