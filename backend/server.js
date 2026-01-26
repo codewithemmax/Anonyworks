@@ -35,9 +35,7 @@ app.get('/health', (req, res) => {
 const pitConnections = new Map();
 
 // Initialize Gemini AI
-const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY 
-});
+const ai = new GoogleGenAI(process.env.GEMINI_API_KEY);
 // Function to check if email is from a company domain
 const isCompanyEmail = (email) => {
   const domain = email.split('@')[1]?.toLowerCase();
