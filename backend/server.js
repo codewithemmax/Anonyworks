@@ -12,7 +12,16 @@ import { pool } from './db.js';
 import { generateToken, verifyToken } from './auth.js';
 
 dotenv.config();
+const interval = 14 * 60 * 1000; // 14 minutes in milliseconds
 
+function reloadWebsite() {
+  axios.get(url)
+    .then(() => console.log("Self-ping successful"))
+    .catch((err) => console.error("Self-ping failed:", err.message));
+}
+
+// Start the interval
+setInterval(reloadWebsite, interval);
 const app = express();
 const server = createServer(app);
 const wss = new WebSocketServer({ server });
