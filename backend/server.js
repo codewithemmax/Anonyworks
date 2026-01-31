@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 import bcrypt from 'bcrypt';
 
 import * as brevo from '@getbrevo/brevo';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 
 import { WebSocketServer } from 'ws';
 import { createServer } from 'http';
@@ -21,6 +21,8 @@ function reloadWebsite() {
     .then(() => console.log("Self-ping successful"))
     .catch((err) => console.error("Self-ping failed:", err.message));
 }
+
+reloadWebsite()
 
 
 dotenv.config();
@@ -47,8 +49,7 @@ app.get('/health', (req, res) => {
 const pitConnections = new Map();
 
 // Initialize Gemini AI
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-
+const ai = new GoogleGenAI(process.env.GEMINI_API_KEY);
 // Function to check if email is from a company domain
 const isCompanyEmail = (email) => {
   const domain = email.split('@')[1]?.toLowerCase();
@@ -59,40 +60,46 @@ const isCompanyEmail = (email) => {
   return !personalDomains.includes(domain);
 };
 
-// Function to check if email is from a company domain
+
+
 const refineMessage = async (message) => {
   if (!process.env.GEMINI_API_KEY) return message;
 
   try {
-    // 1. Use the model correctly
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }); // 'gemini-pro' is older; flash is faster/cheaper
+    // 🔥 FIX: Add the "-preview" suffix or use the stable 2.5 version
+    const modelName = 'gemini-3-flash-preview';
 
-    const prompt = `Please refine this feedback message to be professional, constructive, and appropriate for workplace communication. Keep the core message and intent, but make it polite and professional. If it's already professional, return it exactly as is:
+    const prompt = `
+      Act as a professional workplace communication filter for an anonymous feedback app. 
 
-"${message}"`;
+      TASK:
+      - Identify and replace all profanity, aggressive slang, or unprofessional idioms with a single, polite, and constructive professional equivalent.
+      - Keep the rest of the sentence as close to the original as possible.
+      - OUTPUT ONLY the rewritten sentence. No explanations. No options.
 
-    // 2. Wrap the prompt in the correct content structure
-    const result = await model.generateContent(prompt);
-    
-    // 3. Await the text response correctly
-    const response = await result.response;
-    const refinedMessage = response.text().trim();
-    
-    if (refinedMessage.toLowerCase() !== message.toLowerCase()) {
-      return `${refinedMessage}\n\n*This message has been refined by Gemini AI for professional communication.*`;
-    }
-    
-    return refinedMessage;
+      EXAMPLES:
+      - "I fucked up the code" -> "I committed an error in the code."
+      - "This project is fucked" -> "This project is currently untenable."
+      - "The boss is being a jerk" -> "Management is behaving unprofessionally."
+      - "I'm fucking with the settings" -> "I am adjusting the configuration."
+
+      USER MESSAGE: "${message}"
+      `;
+
+    const response = await ai.models.generateContent({
+      model: modelName,
+      contents: [{ role: 'user', parts: [{ text: prompt }] }]
+    });
+
+    return response.text.trim();
   } catch (error) {
-    console.error('Gemini API error:', error);
-    return message;
+    // If you still get a 404, it means your region hasn't received 3-flash yet.
+    // Use gemini-2.5-flash as the fallback.
+    console.error('Gemini 3 not found. Trying Gemini 2.5...');
+    return;
   }
 };
 // Initialize Brevo API
-// 1. Change your import to destructure exactly what you need
-
-// ... (Rest of your imports)
-
 // 2. Initialize using the direct class name
 const apiInstance = new brevo.TransactionalEmailsApi();
 apiInstance.setApiKey(brevo.TransactionalEmailsApiApiKeys.apiKey, process.env.BREVO_API_KEY);
@@ -444,11 +451,11 @@ app.get('/api/user/profile', verifyToken, async (req, res) => {
   }
 });
 
-// Get user's active pits
+// Get user's pits (both active and expired)
 app.get('/api/user/pits', verifyToken, async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT id, title, is_active, expires_at, created_at FROM pits WHERE creator_id = $1 AND expires_at > NOW() ORDER BY created_at DESC',
+      'SELECT id, title, is_active, expires_at, created_at FROM pits WHERE creator_id = $1 ORDER BY created_at DESC',
       [req.user.userId]
     );
 
@@ -463,18 +470,28 @@ app.get('/api/user/pits', verifyToken, async (req, res) => {
 app.post('/api/pit/create', verifyToken, async (req, res) => {
   const { userId } = req.user;
   const { title } = req.body;
+  console.log("Creating pit for user:", userId, "with title:", title);
 
   try {
+    // Get user type to set force_professional for company users
+    const userResult = await pool.query(
+      'SELECT user_type FROM users WHERE id = $1',
+      [userId]
+    );
+    
+    const isCompany = userResult.rows[0]?.user_type === 'company';
+    
     const result = await pool.query(
-      'INSERT INTO pits (creator_id, title) VALUES ($1, $2) RETURNING id, expires_at, title',
-      [userId, title || 'Anonymous Feedback']
+      'INSERT INTO pits (creator_id, title, force_professional) VALUES ($1, $2, $3) RETURNING id, expires_at, title, force_professional',
+      [userId, title || 'Anonymous Feedback', isCompany]
     );
 
     res.json({ 
       success: true, 
       pitId: result.rows[0].id,
       expiresAt: result.rows[0].expires_at,
-      title: result.rows[0].title
+      title: result.rows[0].title,
+      forceProfessional: result.rows[0].force_professional
     });
 
   } catch (error) {
@@ -505,6 +522,33 @@ app.get('/api/pit/:id/messages', verifyToken, async (req, res) => {
     res.json({ success: true, messages: messagesResult.rows });
   } catch (error) {
     console.error('Get messages error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// Get pit info (public)
+app.get('/api/pit/:id/info', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const pitResult = await pool.query(
+      'SELECT p.*, u.user_type as creator_type FROM pits p JOIN users u ON p.creator_id = u.id WHERE p.id = $1',
+      [id]
+    );
+
+    if (pitResult.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Pit not found' });
+    }
+
+    const pit = pitResult.rows[0];
+    // Auto-enable professional mode for company pits if not explicitly set
+    if (pit.creator_type === 'company' && pit.force_professional === null) {
+      pit.force_professional = true;
+    }
+
+    res.json({ success: true, pit });
+  } catch (error) {
+    console.error('Get pit info error:', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
@@ -549,6 +593,28 @@ app.post('/api/pit/:id/message', async (req, res) => {
     res.json({ success: true, message: 'Message sent anonymously' });
   } catch (error) {
     console.error('Submit message error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// Toggle pit professional mode (protected)
+app.put('/api/pit/:id/professional', verifyToken, async (req, res) => {
+  const { id } = req.params;
+  const { forceProfessional } = req.body;
+
+  try {
+    const result = await pool.query(
+      'UPDATE pits SET force_professional = $1 WHERE id = $2 AND creator_id = $3 RETURNING id',
+      [forceProfessional, id, req.user.userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Pit not found' });
+    }
+
+    res.json({ success: true, message: 'Professional mode updated' });
+  } catch (error) {
+    console.error('Toggle professional mode error:', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Sparkles, Send, Shield, LogIn, UserPlus, Home } from 'lucide-react';
@@ -12,7 +12,28 @@ export default function Pit() {
   const [isProfessional, setIsProfessional] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [pitInfo, setPitInfo] = useState<any>(null);
   const isLoggedIn = api.isAuthenticated();
+
+  useEffect(() => {
+    fetchPitInfo();
+  }, [id]);
+
+  const fetchPitInfo = async () => {
+    try {
+      const response = await api.fetch(`/api/pit/${id}/info`);
+      const data = await response.json();
+      if (data.success) {
+        setPitInfo(data.pit);
+        // Auto-enable professional mode for company pits or if forced
+        if (data.pit.creator_type === 'company' || data.pit.force_professional) {
+          setIsProfessional(true);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch pit info');
+    }
+  };
 
   const handleSubmit = async () => {
     if (!message.trim()) return;
@@ -121,14 +142,20 @@ export default function Pit() {
                 <Sparkles className="w-5 h-5 text-purple-400" />
                 <div>
                   <h3 className="font-medium text-sm sm:text-base">Professional Mode</h3>
-                  <p className="text-xs sm:text-sm text-zinc-400">Let Gemini rewrite your feedback professionally</p>
+                  <p className="text-xs sm:text-sm text-zinc-400">
+                    {pitInfo?.creator_type === 'company' || pitInfo?.force_professional
+                      ? 'Automatically enabled for this feedback session'
+                      : 'Let Gemini rewrite your feedback professionally'
+                    }
+                  </p>
                 </div>
               </div>
               <button
                 onClick={() => setIsProfessional(!isProfessional)}
+                disabled={pitInfo?.creator_type === 'company' || pitInfo?.force_professional}
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                   isProfessional ? 'bg-purple-600' : 'bg-zinc-700'
-                }`}
+                } ${pitInfo?.creator_type === 'company' || pitInfo?.force_professional ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 <span
                   className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${

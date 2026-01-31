@@ -10,6 +10,7 @@ const createTables = async () => {
         creator_id UUID NOT NULL, 
         title VARCHAR(255) DEFAULT 'Anonymous Feedback',
         is_active BOOLEAN DEFAULT TRUE,
+        force_professional BOOLEAN DEFAULT FALSE,
         expires_at TIMESTAMP DEFAULT (CURRENT_TIMESTAMP + INTERVAL '1 day'),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );

@@ -29,6 +29,7 @@ export default function Dashboard() {
   const [showOriginal, setShowOriginal] = useState<{[key: number]: boolean}>({});
   const [showTitleInput, setShowTitleInput] = useState(false);
   const [newTitle, setNewTitle] = useState('');
+  const [isCreatingPit, setIsCreatingPit] = useState(false);
   const [confirmAction, setConfirmAction] = useState<{type: 'end' | 'delete', pitId: string} | null>(null);
   const navigate = useNavigate();
 
@@ -107,6 +108,8 @@ export default function Dashboard() {
 
   const createPit = async () => {
     if (showTitleInput) {
+      if (isCreatingPit) return; // Prevent double clicks
+      setIsCreatingPit(true);
       try {
         const response = await api.fetch('/api/pit/create', {
           method: 'POST',
@@ -124,9 +127,27 @@ export default function Dashboard() {
         }
       } catch (error) {
         toast.error('Failed to create pit');
+      } finally {
+        setIsCreatingPit(false);
       }
     } else {
       setShowTitleInput(true);
+    }
+  };
+
+  const togglePitProfessionalMode = async (pitId: string, forceProfessional: boolean) => {
+    try {
+      const response = await api.fetch(`/api/pit/${pitId}/professional`, {
+        method: 'PUT',
+        body: JSON.stringify({ forceProfessional })
+      });
+      
+      if (response.ok) {
+        fetchPits(); // Refresh pits to show updated state
+        toast.success(`Professional mode ${forceProfessional ? 'enabled' : 'disabled'}`);
+      }
+    } catch (error) {
+      toast.error('Failed to update professional mode');
     }
   };
 
@@ -268,10 +289,11 @@ export default function Dashboard() {
                 )}
                 <button
                   onClick={createPit}
-                  className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-primary hover:bg-primary-dark transition-all text-sm sm:text-base"
+                  disabled={isCreatingPit}
+                  className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-primary hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm sm:text-base"
                 >
                   <Plus className="w-4 h-4" />
-                  {showTitleInput ? 'Create' : 'New Pit'}
+                  {isCreatingPit ? 'Creating...' : (showTitleInput ? 'Create' : 'New Pit')}
                 </button>
               </div>
             </div>
@@ -304,7 +326,21 @@ export default function Dashboard() {
                   >
                     <div className="flex justify-between items-start mb-2">
                       <h4 className="font-medium truncate">{pit.title}</h4>
-                      <div className="flex gap-1">
+                      <div className="flex gap-1 items-center">
+                        {user.user_type === 'company' && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              togglePitProfessionalMode(pit.id, !pit.force_professional);
+                            }}
+                            className={`p-1 rounded text-xs ${
+                              pit.force_professional ? 'bg-purple-600 text-white' : 'bg-zinc-700 text-zinc-300'
+                            }`}
+                            title="Toggle Professional Mode"
+                          >
+                            Pro
+                          </button>
+                        )}
                         <button
                           onClick={(e) => {
                             e.stopPropagation();

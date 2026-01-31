@@ -1,6 +1,6 @@
 // Get the base URL from your environment variables
 // In production, this will be your Render URL
-const BASE_URL = 'https://anonyworks.onrender.com';
+const BASE_URL = 'http://localhost:3001'; // Change to your production URL as needed
 
 export const api = {
   getToken: () => localStorage.getItem('token'),
