@@ -13,7 +13,7 @@ import { generateToken, verifyToken } from './auth.js';
 
 import axios from 'axios';
 
-const url = `https://anonyworks.onrender.com/healthcheck`;
+const url = `https://anonyworks-pm02.onrender.com/healthcheck`;
 const interval = 14 * 60 * 1000;
 
 function reloadWebsite() {
