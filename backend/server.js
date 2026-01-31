@@ -48,6 +48,17 @@ const pitConnections = new Map();
 
 // Initialize Gemini AI
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
+// Function to check if email is from a company domain
+const isCompanyEmail = (email) => {
+  const domain = email.split('@')[1]?.toLowerCase();
+  const personalDomains = [
+    'gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com',
+    'aol.com', 'icloud.com', 'protonmail.com', 'yandex.com'
+  ];
+  return !personalDomains.includes(domain);
+};
+
 // Function to check if email is from a company domain
 const refineMessage = async (message) => {
   if (!process.env.GEMINI_API_KEY) return message;
