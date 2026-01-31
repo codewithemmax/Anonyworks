@@ -13,6 +13,7 @@ interface Pit {
   is_active: boolean;
   expires_at: string;
   created_at: string;
+  force_professional?: boolean;
 }
 
 interface Message {
