@@ -48,8 +48,22 @@ export default function ProtectedRoute({ children, requireAuth = true }: Protect
         return;
       }
 
+      // Skip profile check for non-auth required routes
+      if (!requireAuth) {
+        navigate('/dashboard');
+        setLoading(false);
+        return;
+      }
+
       try {
-        const response = await api.fetch('/api/user/profile');
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+        
+        const response = await api.fetch('/api/user/profile', {
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        
         const data = await response.json();
         
         if (data.success) {
@@ -63,6 +77,9 @@ export default function ProtectedRoute({ children, requireAuth = true }: Protect
           }
         }
       } catch (error) {
+        if (error.name === 'AbortError') {
+          console.log('Request timeout - proceeding anyway');
+        }
         api.logout();
         if (requireAuth) {
           navigate('/login');
@@ -78,7 +95,11 @@ export default function ProtectedRoute({ children, requireAuth = true }: Protect
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-xl">Loading...</div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500 mx-auto mb-4"></div>
+          <div className="text-lg">Loading...</div>
+          <div className="text-sm text-zinc-400 mt-2">This may take a moment on first load</div>
+        </div>
       </div>
     );
   }
