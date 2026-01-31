@@ -11,6 +11,18 @@ import { createServer } from 'http';
 import { pool } from './db.js';
 import { generateToken, verifyToken } from './auth.js';
 
+import axios from 'axios';
+
+const url = `https://anonyworks.onrender.com/healthcheck`;
+const interval = 14 * 60 * 1000;
+
+function reloadWebsite() {
+  axios.get(url)
+    .then(() => console.log("Self-ping successful"))
+    .catch((err) => console.error("Self-ping failed:", err.message));
+}
+
+
 dotenv.config();
 
 const app = express();
