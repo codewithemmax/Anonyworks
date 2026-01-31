@@ -77,9 +77,6 @@ export default function ProtectedRoute({ children, requireAuth = true }: Protect
           }
         }
       } catch (error) {
-        if (error.name === 'AbortError') {
-          console.log('Request timeout - proceeding anyway');
-        }
         api.logout();
         if (requireAuth) {
           navigate('/login');
