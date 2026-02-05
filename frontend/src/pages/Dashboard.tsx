@@ -332,12 +332,10 @@ export default function Dashboard() {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              togglePitProfessionalMode(pit.id, !pit.force_professional);
+                              togglePitProfessionalMode(pit.id, true);
                             }}
-                            className={`p-1 rounded text-xs ${
-                              pit.force_professional ? 'bg-purple-600 text-white' : 'bg-zinc-700 text-zinc-300'
-                            }`}
-                            title="Toggle Professional Mode"
+                            className="p-1 rounded text-xs bg-purple-600 text-white"
+                            title="Professional Mode Always On"
                           >
                             Pro
                           </button>

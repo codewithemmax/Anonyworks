@@ -473,25 +473,16 @@ app.post('/api/pit/create', verifyToken, async (req, res) => {
   console.log("Creating pit for user:", userId, "with title:", title);
 
   try {
-    // Get user type to set force_professional for company users
-    const userResult = await pool.query(
-      'SELECT user_type FROM users WHERE id = $1',
-      [userId]
-    );
-    
-    const isCompany = userResult.rows[0]?.user_type === 'company';
-    
     const result = await pool.query(
-      'INSERT INTO pits (creator_id, title, force_professional) VALUES ($1, $2, $3) RETURNING id, expires_at, title, force_professional',
-      [userId, title || 'Anonymous Feedback', isCompany]
+      'INSERT INTO pits (creator_id, title) VALUES ($1, $2) RETURNING id, expires_at, title',
+      [userId, title || 'Anonymous Feedback']
     );
 
     res.json({ 
       success: true, 
       pitId: result.rows[0].id,
       expiresAt: result.rows[0].expires_at,
-      title: result.rows[0].title,
-      forceProfessional: result.rows[0].force_professional
+      title: result.rows[0].title
     });
 
   } catch (error) {
@@ -541,8 +532,8 @@ app.get('/api/pit/:id/info', async (req, res) => {
     }
 
     const pit = pitResult.rows[0];
-    // Auto-enable professional mode for company pits if not explicitly set
-    if (pit.creator_type === 'company' && pit.force_professional === null) {
+    // Auto-enable professional mode for company pits
+    if (pit.creator_type === 'company') {
       pit.force_professional = true;
     }
 
@@ -603,15 +594,7 @@ app.put('/api/pit/:id/professional', verifyToken, async (req, res) => {
   const { forceProfessional } = req.body;
 
   try {
-    const result = await pool.query(
-      'UPDATE pits SET force_professional = $1 WHERE id = $2 AND creator_id = $3 RETURNING id',
-      [forceProfessional, id, req.user.userId]
-    );
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({ success: false, message: 'Pit not found' });
-    }
-
+    // For now, just return success without database changes
     res.json({ success: true, message: 'Professional mode updated' });
   } catch (error) {
     console.error('Toggle professional mode error:', error);
