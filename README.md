@@ -1,180 +1,209 @@
 # AnonyWorks
 
-> A private space for honest, anonymous feedback
+> A private space for honest, anonymous feedback.
 
-[![React](https://img.shields.io/badge/React-19.2-61DAFB?logo=react&logoColor=white)](https://reactjs.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-16-000000?logo=next.js&logoColor=white)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Node.js](https://img.shields.io/badge/Node.js-20+-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Supabase-4169E1?logo=postgresql&logoColor=white)](https://supabase.com/)
+[![Supabase](https://img.shields.io/badge/Database-Supabase-3ECF8E?logo=supabase&logoColor=white)](https://supabase.com/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-## 🌟 Features
+## Overview
 
-- 🔐 **Anonymous Feedback** - Share feedback without attaching your name or personal details
-- 📝 **Professional Feedback Mode** - Mark messages as professional for clearer team review
-- 📊 **Actionable Insights** - Transform anonymous feedback into data-driven decisions
-- 🎨 **Modern UI** - Dark theme with glassmorphism effects and smooth animations
-- 🔑 **Secure Authentication** - JWT tokens and bcrypt password hashing
-- ⚡ **Live Updates** - Dashboard polling keeps message views current
+AnonyWorks is a serverless anonymous-feedback application for individuals and companies. Users can create feedback sessions, share a session link, and review messages without exposing the sender's identity.
 
-## 🚀 Tech Stack
+The application runs as a Next.js App Router application. The user interface is rendered through the catch-all page at `app/[[...path]]/page.tsx`, while the serverless API is implemented by the catch-all route at `app/api/[...route]/route.ts`.
 
-### Application
-- **Next.js 16** with React 19 and TypeScript
-- **Tailwind CSS** for styling
+## Features
+
+- 🔐 **Anonymous feedback** — Send feedback without attaching a name or personal details.
+- 📝 **Professional feedback mode** — Mark messages as professional for clearer team review.
+- 📊 **Feedback sessions** — Create, view, end, and delete feedback sessions.
+- 🔑 **Password authentication** — JWT-based authentication with bcrypt password hashing.
+- 🎨 **Modern UI** — Dark theme with glassmorphism effects, Framer Motion animations, and Lucide icons.
+- ⚡ **Serverless API** — Next.js route handlers serve the backend without a separate Express server.
+
+## What is not included
+
+- **Brevo/email delivery:** Removed. Account registration and login currently use password authentication and do not send OTP emails.
+- **Gemini/AI processing:** Removed. Messages are stored as submitted; professional mode is a user-selected label rather than an AI rewrite.
+- **Google OAuth:** Not currently implemented.
+- **WebSockets or a separate backend service:** The active backend is the Next.js serverless API route.
+
+## Tech stack
+
+- **Next.js 16** with the App Router
+- **React 19** and TypeScript
+- **Tailwind CSS**
 - **Framer Motion** for animations
 - **Lucide React** for icons
-- **PostgreSQL** (Supabase)
-- **JWT** for authentication
+- **PostgreSQL on Supabase** through the `pg` driver
+- **JWT** for stateless authentication
 - **bcrypt** for password hashing
 
-## 📸 Screenshots
+## Prerequisites
 
-### Landing Page
-Beautiful hero section with glassmorphism feature cards
+- Node.js 20.9 or later
+- npm or Bun
+- A Supabase project with PostgreSQL access
 
-### Multi-Step Signup
-Intuitive flow for Individual and Company accounts
+## Installation
 
-### Login
-Simple password-based sign in
+### 1. Clone the repository
 
-## 🛠️ Installation
-
-### Prerequisites
-- Bun 1.x
-- Node.js 20.9+ (required by Next.js 16)
-- Supabase account
-
-### 1. Clone Repository
 ```bash
-git clone https://github.com/yourusername/anonyworks.git
-cd anonyworks
+git clone https://github.com/codewithemmax/Anonyworks.git
+cd Anonyworks
 ```
 
-### 2. Install Dependencies
+### 2. Install dependencies
+
+```bash
+npm install
+```
+
+Or, using Bun:
+
 ```bash
 bun install
 ```
 
-### 3. Configure the application
+### 3. Configure environment variables
 
 Create `.env.local` in the project root:
 
 ```env
-SUPABASE_DB_URL=postgresql://postgres.[PROJECT-REF]:[PASSWORD]@[SESSION-POOLER-HOST]:6543/postgres
-JWT_SECRET=your_random_secret_key_here
+SUPABASE_DB_URL=postgresql://postgres.project-ref:password@aws-0-region.pooler.supabase.com:6543/postgres
+JWT_SECRET=replace-with-a-long-random-secret
 ```
 
-**Get Supabase Connection String:**
-1. Go to [Supabase Dashboard](https://app.supabase.com/)
-2. Settings → Database → Connection string
-3. Copy and replace `[PASSWORD]` with your database password
+Use a Supabase connection string appropriate for your deployment. Do not commit real credentials.
 
-**Generate JWT Secret:**
+### 4. Initialize the database
+
 ```bash
-node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+npm run db:init
 ```
 
-### 4. Initialize Database
+Or:
 
 ```bash
 bun run db:init
 ```
 
-This creates the required database tables:
-- `users` - User accounts
-- `pits` - Anonymous feedback spaces
-- `messages` - Anonymous feedback messages
+The initialization script creates the following tables and indexes:
 
-### 5. Start the application
+- `users` — Application accounts
+- `pits` — Anonymous feedback sessions
+- `messages` — Feedback submitted to a session
+- Indexes for pit creators and message-to-pit lookups
+
+## Supabase RLS status
+
+Row Level Security is **enabled** for the `pits` and `messages` tables by `scripts/init-db.mjs`:
+
+```sql
+ALTER TABLE pits ENABLE ROW LEVEL SECURITY;
+ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
+```
+
+However, the repository currently does **not** define any `CREATE POLICY` statements, and RLS is not enabled for `users`. The application connects through the PostgreSQL pool in `lib/db.ts` and performs authorization in the Next.js route handlers using the application JWT. Therefore, RLS should be considered **enabled but not fully policy-configured**. Database-level isolation is not complete until explicit policies are added and the connection role is configured to observe them.
+
+The API still applies ownership checks for protected operations, including loading a user's pits, reading pit messages, updating professional mode, ending a pit, and deleting a pit.
+
+## Development
+
+Start the Next.js development server:
 
 ```bash
-bun run dev
+npm run dev
 ```
 
-## 📁 Project Structure
+Open `http://localhost:3000` in your browser.
 
-```
-anonyworks/
-├── app/                      # Next.js app shell and route handlers
-├── lib/                      # Database and JWT helpers
-├── scripts/                  # Database initialization
-├── frontend/                 # Existing UI components and screens
-│   ├── src/
-│   │   ├── components/      # Reusable components
-│   │   ├── pages/           # Page components
-│   │   ├── utils/           # API utility
-│   │   ├── App.tsx          # Main app component
-│   │   └── index.css        # Tailwind entry stylesheet
-│   ├── public/              # Static assets
-├── app/api/[...route]/       # Serverless API route handler
-├── package.json              # Next.js scripts and dependencies
-└── README.md               # This file
-```
+Available scripts:
 
-## 🔄 API Endpoints
+| Command | Description |
+| --- | --- |
+| `npm run dev` | Start the Next.js development server |
+| `npm run build` | Create a production build |
+| `npm run start` | Start the production server |
+| `npm run lint` | Run ESLint |
+| `npm run typecheck` | Run TypeScript without emitting files |
+| `npm run db:init` | Create the Supabase database tables and indexes |
 
-### Authentication
-- `POST /api/auth/signup` - Create new account and return a JWT
-- `POST /api/auth/login` - Sign in and return a JWT
+## API endpoints
 
-### Protected Routes
-- `GET /api/user/profile` - Get user profile (requires JWT)
+All endpoints are served under `/api` by `app/api/[...route]/route.ts`.
 
-### Health Check
-- `GET /api/health` - Server status
+### Public endpoints
 
-## 🧪 Testing
+- `GET /api/health` — Check API availability.
+- `POST /api/auth/signup` — Create an account and return a JWT.
+- `POST /api/auth/login` — Authenticate with an email and password.
+- `GET /api/pit/:id/info` — Retrieve public information about a feedback session.
+- `POST /api/pit/:id/message` — Submit anonymous feedback to an active session.
 
-### API
+### Authenticated endpoints
+
+Send the JWT as a bearer token in the `Authorization` header.
+
+- `GET /api/user/profile` — Retrieve the authenticated user's profile.
+- `GET /api/user/pits` — List the authenticated user's feedback sessions.
+- `POST /api/pit/create` — Create a feedback session.
+- `GET /api/pit/:id/messages` — Retrieve messages for an owned session.
+- `PUT /api/pit/:id/professional` — Update professional mode for an owned session.
+- `POST /api/pit/:id/end` — End an owned session.
+- `DELETE /api/pit/:id` — Delete an owned session.
+
+Example authenticated request:
+
 ```bash
-# Signup
-curl -X POST http://localhost:3000/api/auth/signup \
-  -H "Content-Type: application/json" \
-  -d '{"email":"test@example.com","password":"pass123","name":"Test User","userType":"individual"}'
-
-# Login
-curl -X POST http://localhost:3000/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"test@example.com","password":"pass123"}'
-
-# Get Profile
 curl http://localhost:3000/api/user/profile \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
 
-## 🔒 Security Features
+## Project structure
 
-- ✅ **Password Hashing** - bcrypt with 10 salt rounds
-- ✅ **JWT Authentication** - Stateless, secure tokens (7-day expiry)
-- ✅ **SQL Injection Protection** - Parameterized queries
-- ✅ **Environment Variables** - Sensitive data protection
+```text
+Anonyworks/
+├── app/
+│   ├── [[...path]]/page.tsx       # Client UI entry point
+│   ├── api/[...route]/route.ts    # Serverless API route handlers
+│   └── layout.tsx                 # Root layout and metadata
+├── frontend/src/                  # Existing client UI components and screens
+│   ├── App.tsx                    # Client-side route definitions
+│   ├── components/                # Reusable UI components
+│   ├── pages/                     # Landing, auth, dashboard, and pit screens
+│   ├── utils/                     # Client API helpers
+│   └── index.css                  # Global styles
+├── lib/
+│   ├── auth.ts                    # JWT creation and request authentication
+│   └── db.ts                      # Supabase PostgreSQL connection pool
+├── scripts/init-db.mjs            # Database schema initialization
+├── next.config.mjs                # Next.js configuration
+├── tailwind.config.ts             # Tailwind configuration
+├── package.json                   # Next.js scripts and dependencies
+└── README.md
+```
 
-## 📚 Documentation
+The `frontend/src` directory contains the client UI consumed by the Next.js catch-all page. It is not a separate Vite or Express application in the current setup.
 
-- API endpoints, authentication flow, and database schema are implemented in `app/api/[...route]/route.ts`
+## Security notes
 
+- Passwords are hashed with bcrypt before storage.
+- SQL queries use PostgreSQL parameters rather than string interpolation.
+- JWT secrets and database credentials are read from environment variables.
+- Protected API operations verify the JWT and check resource ownership.
+- RLS is enabled on `pits` and `messages`, but explicit Supabase policies still need to be configured for database-level enforcement.
 
-## 📝 License
+## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
 
+## Author
 
-## 👥 Authors
-
-- **Olayinka Emmanuel** - [GitHub](https://github.com/codewithemmax)
-
-## 🙏 Acknowledgments
-
-- [Supabase](https://supabase.com/) - Backend infrastructure
-- [Tailwind CSS](https://tailwindcss.com/) - Styling framework
-- [Framer Motion](https://www.framer.com/motion/) - Animation library
-- [Lucide](https://lucide.dev/) - Icon library
-
-## 📧 Contact
-
-For questions or support, please open an issue or contact [olayinkaemma27@gmail.com](mailto:olayinkaemma27@gmail.com)
+**Olayinka Emmanuel** — [GitHub](https://github.com/codewithemmax)
 
 ---
 
