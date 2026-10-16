@@ -81,7 +81,7 @@ export async function GET(request: Request, context: { params: Promise<{ route: 
       const auth = requireUser(request);
       if (!auth) return bad('Unauthorized', 401);
       const result = await pool.query(
-        'SELECT id, title, is_active, expires_at, created_at, force_professional FROM pits WHERE creator_id = $1 ORDER BY created_at DESC',
+        'SELECT id, title, is_active, expires_at, created_at, force_professional, report_category, case_status, case_reference FROM pits WHERE creator_id = $1 ORDER BY created_at DESC',
         [auth.userId],
       );
       return json({ success: true, sessions: result.rows, pits: result.rows });
@@ -152,8 +152,8 @@ export async function POST(request: Request, context: { params: Promise<{ route:
       const auth = requireUser(request);
       if (!auth) return bad('Unauthorized', 401);
       const result = await pool.query(
-        'INSERT INTO pits (creator_id, title) VALUES ($1, $2) RETURNING id, expires_at, title',
-        [auth.userId, data?.title || 'Anonymous Feedback'],
+        'INSERT INTO pits (creator_id, title, report_category) VALUES ($1, $2, $3) RETURNING id, expires_at, title, report_category, case_status, case_reference',
+        [auth.userId, data?.title || 'Anonymous Workplace Incident', data?.reportCategory || 'workplace_incident'],
       );
       return json({
         success: true,
@@ -161,6 +161,9 @@ export async function POST(request: Request, context: { params: Promise<{ route:
         pitId: result.rows[0].id,
         expiresAt: result.rows[0].expires_at,
         title: result.rows[0].title,
+        reportCategory: result.rows[0].report_category,
+        status: result.rows[0].case_status,
+        caseReference: result.rows[0].case_reference,
       });
     }
 
@@ -195,14 +198,29 @@ export async function POST(request: Request, context: { params: Promise<{ route:
 export async function PUT(request: Request, context: { params: Promise<{ route: string[] }> }) {
   try {
     const { route = [] } = await context.params;
-    const match = route.join('/').replace(/^pit\//, 'session/').match(/^session\/([^/]+)\/professional$/);
-    if (!match) return bad('Not found', 404);
+    const path = route.join('/').replace(/^pit\//, 'session/');
+    const statusMatch = path.match(/^session\/([^/]+)\/status$/);
+    const professionalMatch = path.match(/^session\/([^/]+)\/professional$/);
+    if (!statusMatch && !professionalMatch) return bad('Not found', 404);
     const auth = requireUser(request);
     if (!auth) return bad('Unauthorized', 401);
     const data = await body(request);
+
+    if (statusMatch) {
+      const status = data?.status;
+      if (!['open', 'under_review', 'resolved'].includes(status)) return bad('Invalid case status');
+      const result = await pool.query(
+        'UPDATE pits SET case_status = $1 WHERE id = $2 AND creator_id = $3 RETURNING id, case_status',
+        [status, statusMatch[1], auth.userId],
+      );
+      return result.rows[0]
+        ? json({ success: true, status: result.rows[0].case_status })
+        : bad('Session not found', 404);
+    }
+
     const result = await pool.query(
       'UPDATE pits SET force_professional = $1 WHERE id = $2 AND creator_id = $3 RETURNING id',
-      [Boolean(data?.forceProfessional), match[1], auth.userId],
+      [Boolean(data?.forceProfessional), professionalMatch![1], auth.userId],
     );
     return result.rows[0] ? json({ success: true, message: 'Professional mode updated' }) : bad('Session not found', 404);
   } catch (error) {

@@ -13,6 +13,9 @@ interface SessionRecord {
   expires_at: string;
   created_at: string;
   force_professional?: boolean;
+  report_category?: string;
+  case_status?: 'open' | 'under_review' | 'resolved';
+  case_reference?: string;
 }
 
 interface Message {
@@ -29,6 +32,7 @@ export default function Dashboard() {
   const [showOriginal, setShowOriginal] = useState<{[key: number]: boolean}>({});
   const [showTitleInput, setShowTitleInput] = useState(false);
   const [newTitle, setNewTitle] = useState('');
+  const [reportCategory, setReportCategory] = useState('workplace_incident');
   const [isCreatingSession, setIsCreatingSession] = useState(false);
   const [confirmAction, setConfirmAction] = useState<{type: 'end' | 'delete', sessionId: string} | null>(null);
   const navigate = useNavigate();
@@ -84,7 +88,7 @@ export default function Dashboard() {
         const response = await api.fetch('/api/session/create', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title: newTitle })
+          body: JSON.stringify({ title: newTitle, reportCategory })
         });
         const data = await response.json();
         const createdSessionId = data.sessionId || data.pitId;
@@ -95,6 +99,7 @@ export default function Dashboard() {
           fetchMessages(createdSessionId);
           setShowTitleInput(false);
           setNewTitle('');
+          setReportCategory('workplace_incident');
         } else {
           toast.error(data.message || 'Failed to create session');
         }
@@ -105,6 +110,26 @@ export default function Dashboard() {
       }
     } else {
       setShowTitleInput(true);
+    }
+  };
+
+  const updateCaseStatus = async (sessionId: string, status: SessionRecord['case_status']) => {
+    try {
+      const response = await api.fetch(`/api/session/${sessionId}/status`, {
+        method: 'PUT',
+        body: JSON.stringify({ status }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        setSessions((current) => current.map((session) => (
+          session.id === sessionId ? { ...session, case_status: data.status } : session
+        )));
+        toast.success('Case status updated');
+      } else {
+        toast.error(data.message || 'Failed to update case status');
+      }
+    } catch {
+      toast.error('Failed to update case status');
     }
   };
 
@@ -247,15 +272,27 @@ export default function Dashboard() {
               <h3 className="text-lg sm:text-xl font-bold">Your Sessions</h3>
               <div className="flex flex-col gap-2 w-full sm:w-auto">
                 {showTitleInput && (
-                  <input
-                    type="text"
-                    value={newTitle}
-                    onChange={(e) => setNewTitle(e.target.value)}
-                    placeholder="Enter session title"
-                    className="px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-800 focus:border-purple-500 outline-none text-sm w-full"
-                    onKeyPress={(e) => e.key === 'Enter' && createSession()}
-                    autoFocus
-                  />
+                  <>
+                    <input
+                      type="text"
+                      value={newTitle}
+                      onChange={(e) => setNewTitle(e.target.value)}
+                      placeholder="Enter case title"
+                      className="px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-800 focus:border-purple-500 outline-none text-sm w-full"
+                      onKeyPress={(e) => e.key === 'Enter' && createSession()}
+                      autoFocus
+                    />
+                    <select
+                      value={reportCategory}
+                      onChange={(e) => setReportCategory(e.target.value)}
+                      className="px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-800 focus:border-purple-500 outline-none text-sm w-full"
+                    >
+                      <option value="workplace_incident">Workplace incident</option>
+                      <option value="harassment">Harassment or discrimination</option>
+                      <option value="safety">Safety concern</option>
+                      <option value="policy">Policy or ethics concern</option>
+                    </select>
+                  </>
                 )}
                 <button
                   onClick={createSession}
@@ -342,6 +379,12 @@ export default function Dashboard() {
                       <Clock className="w-3 h-3" />
                       <span>{getTimeRemaining(session.expires_at)}</span>
                     </div>
+                    <div className="flex items-center justify-between mt-3 gap-2">
+                      <span className="text-xs uppercase tracking-wide text-zinc-500">
+                        {session.case_status?.replace('_', ' ') || 'open'}
+                      </span>
+                      {session.case_reference && <span className="text-xs text-zinc-500">{session.case_reference}</span>}
+                    </div>
                   </div>
                 ))
               )}
@@ -359,6 +402,21 @@ export default function Dashboard() {
                       <div className="flex items-center gap-2 text-sm text-zinc-400">
                         <Clock className="w-4 h-4" />
                         <span>{getTimeRemaining(selectedSessionData.expires_at)}</span>
+                      </div>
+                      <div className="mt-3 flex items-center gap-3 text-sm">
+                        <span className="text-zinc-400">Case status</span>
+                        <select
+                          value={selectedSessionData.case_status || 'open'}
+                          onChange={(event) => updateCaseStatus(selectedSessionData.id, event.target.value as SessionRecord['case_status'])}
+                          className="rounded-lg bg-zinc-900 border border-zinc-800 px-3 py-2 outline-none focus:border-purple-500"
+                        >
+                          <option value="open">Open</option>
+                          <option value="under_review">Under review</option>
+                          <option value="resolved">Resolved</option>
+                        </select>
+                        {selectedSessionData.case_reference && (
+                          <span className="text-xs text-zinc-500">{selectedSessionData.case_reference}</span>
+                        )}
                       </div>
                     </div>
                     <div className='flex gap-2 items-center'>

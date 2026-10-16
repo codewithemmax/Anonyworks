@@ -56,6 +56,9 @@ try {
     ALTER TABLE pits ADD COLUMN IF NOT EXISTS title VARCHAR(255) DEFAULT 'Anonymous Feedback';
     ALTER TABLE pits ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;
     ALTER TABLE pits ADD COLUMN IF NOT EXISTS force_professional BOOLEAN DEFAULT FALSE;
+    ALTER TABLE pits ADD COLUMN IF NOT EXISTS report_category VARCHAR(50) DEFAULT 'workplace_incident';
+    ALTER TABLE pits ADD COLUMN IF NOT EXISTS case_status VARCHAR(20) DEFAULT 'open';
+    ALTER TABLE pits ADD COLUMN IF NOT EXISTS case_reference VARCHAR(20) DEFAULT ('ANW-' || upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 8)));
     ALTER TABLE pits ADD COLUMN IF NOT EXISTS expires_at TIMESTAMP DEFAULT (CURRENT_TIMESTAMP + INTERVAL '1 day');
     ALTER TABLE pits ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
     ALTER TABLE messages ADD COLUMN IF NOT EXISTS processed_message TEXT;

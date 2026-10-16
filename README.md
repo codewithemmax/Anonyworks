@@ -23,6 +23,19 @@ The application runs as a Next.js App Router application. The user interface is 
 - 🎨 **Modern UI** — Dark theme with glassmorphism effects, Framer Motion animations, and Lucide icons.
 - ⚡ **Serverless API** — Next.js route handlers serve the backend without a separate Express server.
 
+## Future directions
+
+More information will be added later. Potential anonymous-problem solutions include:
+
+1. Anonymous workplace incident reporting with case tracking.
+2. Anonymous university harassment and safety reporting.
+3. Anonymous healthcare near-miss reporting.
+4. Anonymous customer complaint channels for companies.
+5. Anonymous landlord or tenant issue reporting.
+6. Anonymous community safety reports with moderation and duplicate detection.
+7. Anonymous whistleblower intake with encrypted evidence uploads.
+8. Anonymous peer feedback for schools and teams.
+
 ## What is not included
 
 - **Brevo/email delivery:** Removed. Account registration and login currently use password authentication and do not send OTP emails.
