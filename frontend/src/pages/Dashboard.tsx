@@ -4,9 +4,9 @@ import { motion } from 'framer-motion';
 import { LogOut, Plus, Link, Copy, Eye, EyeOff, Clock, Trash2, StopCircle, Share2 } from 'lucide-react';
 import { api } from '../utils/api';
 import { toast } from '../components/Toast';
-import { usePitLive } from '../hooks/usePitLive';
+import { useSessionLive } from '../hooks/useSessionLive';
 
-interface Pit {
+interface SessionRecord {
   id: string;
   title: string;
   is_active: boolean;
@@ -25,20 +25,20 @@ interface Message {
 
 export default function Dashboard() {
   const [user, setUser] = useState<any>(null);
-  const [pits, setPits] = useState<Pit[]>([]);
+  const [sessions, setSessions] = useState<SessionRecord[]>([]);
   const [showOriginal, setShowOriginal] = useState<{[key: number]: boolean}>({});
   const [showTitleInput, setShowTitleInput] = useState(false);
   const [newTitle, setNewTitle] = useState('');
-  const [isCreatingPit, setIsCreatingPit] = useState(false);
-  const [confirmAction, setConfirmAction] = useState<{type: 'end' | 'delete', pitId: string} | null>(null);
+  const [isCreatingSession, setIsCreatingSession] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<{type: 'end' | 'delete', sessionId: string} | null>(null);
   const navigate = useNavigate();
 
 
-  const [selectedPit, setSelectedPit] = useState<string | null>(null);
+  const [selectedSession, setSelectedSession] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
 
 
-  const liveMessages = usePitLive(selectedPit || undefined, messages);
+  const liveMessages = useSessionLive(selectedSession || undefined, messages);
   useEffect(() => {
 
     const fetchProfile = async () => {
@@ -48,7 +48,7 @@ export default function Dashboard() {
         
         if (data.success) {
           setUser(data.user);
-          fetchPits();
+          fetchSessions();
         }
       } catch (error) {
         console.error('Failed to fetch profile');
@@ -58,61 +58,65 @@ export default function Dashboard() {
     fetchProfile();
   }, [navigate]);
 
-  const fetchPits = async () => {
+  const fetchSessions = async () => {
     try {
-      const response = await api.fetch('/api/user/pits');
+      const response = await api.fetch('/api/user/sessions');
       const data = await response.json();
+      const sessionList = data.sessions || data.pits || [];
       
       if (data.success) {
-        setPits(data.pits);
-        if (data.pits.length > 0 && !selectedPit) {
-          setSelectedPit(data.pits[0].id);
-          fetchMessages(data.pits[0].id);
+        setSessions(sessionList);
+        if (sessionList.length > 0 && !selectedSession) {
+          setSelectedSession(sessionList[0].id);
+          fetchMessages(sessionList[0].id);
         }
       }
     } catch (error) {
-      console.error('Failed to fetch pits');
+      console.error('Failed to fetch sessions');
     }
   };
 
-  const createPit = async () => {
+  const createSession = async () => {
     if (showTitleInput) {
-      if (isCreatingPit) return; // Prevent double clicks
-      setIsCreatingPit(true);
+      if (isCreatingSession) return; // Prevent double clicks
+      setIsCreatingSession(true);
       try {
-        const response = await api.fetch('/api/pit/create', {
+        const response = await api.fetch('/api/session/create', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ title: newTitle })
         });
         const data = await response.json();
+        const createdSessionId = data.sessionId || data.pitId;
         
-        if (data.success) {
-          fetchPits();
-          setSelectedPit(data.pitId);
-          fetchMessages(data.pitId);
+        if (response.ok && data.success && createdSessionId) {
+          fetchSessions();
+          setSelectedSession(createdSessionId);
+          fetchMessages(createdSessionId);
           setShowTitleInput(false);
           setNewTitle('');
+        } else {
+          toast.error(data.message || 'Failed to create session');
         }
       } catch (error) {
-        toast.error('Failed to create pit');
+        toast.error('Failed to create session');
       } finally {
-        setIsCreatingPit(false);
+        setIsCreatingSession(false);
       }
     } else {
       setShowTitleInput(true);
     }
   };
 
-  const togglePitProfessionalMode = async (pitId: string, forceProfessional: boolean) => {
+  const toggleSessionProfessionalMode = async (sessionId: string, forceProfessional: boolean) => {
     try {
-      const response = await api.fetch(`/api/pit/${pitId}/professional`, {
+      const response = await api.fetch(`/api/session/${sessionId}/professional`, {
         method: 'PUT',
         body: JSON.stringify({ forceProfessional })
       });
       
       if (response.ok) {
-        fetchPits(); // Refresh pits to show updated state
+        fetchSessions(); // Refresh sessions to show updated state
         toast.success(`Professional mode ${forceProfessional ? 'enabled' : 'disabled'}`);
       }
     } catch (error) {
@@ -120,9 +124,9 @@ export default function Dashboard() {
     }
   };
 
-  const fetchMessages = async (pitId: string) => {
+  const fetchMessages = async (sessionId: string) => {
     try {
-      const response = await api.fetch(`/api/pit/${pitId}/messages`);
+      const response = await api.fetch(`/api/session/${sessionId}/messages`);
       const data = await response.json();
       
       if (data.success) {
@@ -134,8 +138,8 @@ export default function Dashboard() {
     }
   };
 
-  const copyLink = (pitId: string) => {
-    const url = `${window.location.origin}/pit/${pitId}`;
+  const copyLink = (sessionId: string) => {
+    const url = `${window.location.origin}/session/${sessionId}`;
     navigator.clipboard.writeText(url);
     toast.success('Link copied to clipboard!');
   };
@@ -165,40 +169,40 @@ export default function Dashboard() {
     navigate('/login');
   };
 
-  const endPit = async (pitId: string) => {
+  const endSession = async (sessionId: string) => {
     try {
-      const response = await api.fetch(`/api/pit/${pitId}/end`, { method: 'POST' });
+      const response = await api.fetch(`/api/session/${sessionId}/end`, { method: 'POST' });
       const data = await response.json();
       
       if (data.success) {
-        toast.success('Pit session ended');
-        fetchPits();
-        if (selectedPit === pitId) {
-          setSelectedPit(null);
+        toast.success('Feedback session ended');
+        fetchSessions();
+        if (selectedSession === sessionId) {
+          setSelectedSession(null);
           setMessages([]);
         }
       }
     } catch (error) {
-      toast.error('Failed to end pit');
+      toast.error('Failed to end session');
     }
     setConfirmAction(null);
   };
 
-  const deletePit = async (pitId: string) => {
+  const deleteSession = async (sessionId: string) => {
     try {
-      const response = await api.fetch(`/api/pit/${pitId}`, { method: 'DELETE' });
+      const response = await api.fetch(`/api/session/${sessionId}`, { method: 'DELETE' });
       const data = await response.json();
       
       if (data.success) {
-        toast.success('Pit deleted');
-        fetchPits();
-        if (selectedPit === pitId) {
-          setSelectedPit(null);
+        toast.success('Session deleted');
+        fetchSessions();
+        if (selectedSession === sessionId) {
+          setSelectedSession(null);
           setMessages([]);
         }
       }
     } catch (error) {
-      toast.error('Failed to delete pit');
+      toast.error('Failed to delete session');
     }
     setConfirmAction(null);
   };
@@ -211,7 +215,7 @@ export default function Dashboard() {
     );
   }
 
-  const selectedPitData = pits.find(p => p.id === selectedPit);
+  const selectedSessionData = sessions.find((session) => session.id === selectedSession);
 
   return (
     <div className="min-h-screen bg-background">
@@ -233,71 +237,71 @@ export default function Dashboard() {
       >
         <div className="text-center mb-6 sm:mb-8">
           <h2 className="text-2xl sm:text-3xl font-bold mb-2">Welcome, {user.name}!</h2>
-          <p className="text-zinc-400">Manage your feedback pits</p>
+          <p className="text-zinc-400">Manage your feedback sessions</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
-          {/* Pits Sidebar */}
+          {/* Sessions Sidebar */}
           <div className="lg:col-span-1">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
-              <h3 className="text-lg sm:text-xl font-bold">Your Pits</h3>
+              <h3 className="text-lg sm:text-xl font-bold">Your Sessions</h3>
               <div className="flex flex-col gap-2 w-full sm:w-auto">
                 {showTitleInput && (
                   <input
                     type="text"
                     value={newTitle}
                     onChange={(e) => setNewTitle(e.target.value)}
-                    placeholder="Enter pit title"
+                    placeholder="Enter session title"
                     className="px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-800 focus:border-purple-500 outline-none text-sm w-full"
-                    onKeyPress={(e) => e.key === 'Enter' && createPit()}
+                    onKeyPress={(e) => e.key === 'Enter' && createSession()}
                     autoFocus
                   />
                 )}
                 <button
-                  onClick={createPit}
-                  disabled={isCreatingPit}
+                  onClick={createSession}
+                  disabled={isCreatingSession}
                   className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-primary hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm sm:text-base"
                 >
                   <Plus className="w-4 h-4" />
-                  {isCreatingPit ? 'Creating...' : (showTitleInput ? 'Create' : 'New Pit')}
+                  {isCreatingSession ? 'Creating...' : (showTitleInput ? 'Create' : 'New Session')}
                 </button>
               </div>
             </div>
 
             <div className="space-y-3">
-              {pits.length === 0 ? (
+              {sessions.length === 0 ? (
                 <div className="text-center py-8 text-zinc-400">
-                  <p className="mb-4">No active pits</p>
+                  <p className="mb-4">No active sessions</p>
                   <button
-                    onClick={createPit}
+                    onClick={createSession}
                     className="flex items-center text-white gap-2 px-6 py-3 rounded-lg bg-primary hover:bg-primary-dark transition-all mx-auto"
                   >
                     <Plus className="w-5 h-5" />
-                    Start Your First Pit
+                    Start Your First Session
                   </button>
                 </div>
               ) : (
-                pits.map((pit) => (
+                sessions.map((session) => (
                   <div
-                    key={pit.id}
+                    key={session.id}
                     onClick={() => {
-                      setSelectedPit(pit.id);
-                      fetchMessages(pit.id);
+                      setSelectedSession(session.id);
+                      fetchMessages(session.id);
                     }}
                     className={`p-4 rounded-lg border cursor-pointer transition-all ${
-                      selectedPit === pit.id
+                      selectedSession === session.id
                         ? 'border-purple-500 bg-purple-500/10'
                         : 'border-zinc-800 bg-white/5 hover:border-zinc-700'
                     }`}
                   >
                     <div className="flex justify-between items-start mb-2">
-                      <h4 className="font-medium truncate">{pit.title}</h4>
+                      <h4 className="font-medium truncate">{session.title}</h4>
                       <div className="flex gap-1 items-center">
                         {user.user_type === 'company' && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              togglePitProfessionalMode(pit.id, true);
+                              toggleSessionProfessionalMode(session.id, true);
                             }}
                             className="p-1 rounded text-xs bg-purple-600 text-white"
                             title="Professional Mode Always On"
@@ -308,7 +312,7 @@ export default function Dashboard() {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            copyLink(pit.id);
+                            copyLink(session.id);
                           }}
                           className="p-1 hover:bg-zinc-700 rounded"
                         >
@@ -317,7 +321,7 @@ export default function Dashboard() {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            setConfirmAction({type: 'end', pitId: pit.id});
+                            setConfirmAction({type: 'end', sessionId: session.id});
                           }}
                           className="p-1 hover:bg-orange-700 rounded text-orange-400"
                         >
@@ -326,7 +330,7 @@ export default function Dashboard() {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            setConfirmAction({type: 'delete', pitId: pit.id});
+                            setConfirmAction({type: 'delete', sessionId: session.id});
                           }}
                           className="p-1 hover:bg-red-700 rounded text-red-400"
                         >
@@ -336,7 +340,7 @@ export default function Dashboard() {
                     </div>
                     <div className="flex items-center gap-2 text-sm text-zinc-400">
                       <Clock className="w-3 h-3" />
-                      <span>{getTimeRemaining(pit.expires_at)}</span>
+                      <span>{getTimeRemaining(session.expires_at)}</span>
                     </div>
                   </div>
                 ))
@@ -346,28 +350,28 @@ export default function Dashboard() {
 
           {/* Messages Area */}
           <div className="lg:col-span-2">
-            {selectedPitData ? (
+            {selectedSessionData ? (
               <div className="space-y-6">
                 <div className="p-6 rounded-xl bg-white/5 backdrop-blur-sm border border-zinc-800">
                   <div className="flex justify-between items-start mb-4">
                     <div>
-                      <h3 className="text-xl font-bold mb-2">{selectedPitData.title}</h3>
+                      <h3 className="text-xl font-bold mb-2">{selectedSessionData.title}</h3>
                       <div className="flex items-center gap-2 text-sm text-zinc-400">
                         <Clock className="w-4 h-4" />
-                        <span>{getTimeRemaining(selectedPitData.expires_at)}</span>
+                        <span>{getTimeRemaining(selectedSessionData.expires_at)}</span>
                       </div>
                     </div>
                     <div className='flex gap-2 items-center'>
                       <button
-                        onClick={() => copyLink(selectedPitData.id)}
+                        onClick={() => copyLink(selectedSessionData.id)}
                         className="flex items-center gap-2 px-4 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 transition-all"
                       >
                         <Copy className="w-4 h-4" />
                         Copy Link
                       </button>
                       <button className="flex items-center p-3 hover:bg-zinc-700 active:bg-zinc-900 rounded-lg" onClick={() => navigator.share({
-                            title: "Anonyworks Pit",
-                            url: selectedPitData.id
+                            title: "Anonyworks Session",
+                            url: selectedSessionData.id
                           })}>
                         <Share2 className='w-5 h-5' />
                       </button>
@@ -376,7 +380,7 @@ export default function Dashboard() {
                   </div>
                   <div className="flex items-center gap-2 p-3 bg-zinc-900 rounded-lg">
                     <Link className="w-4 h-4 text-zinc-400" />
-                    <code className="text-sm text-zinc-300 sm:whitespace-nowrap">{window.location.origin}/pit/{selectedPitData.id}</code>
+                    <code className="text-sm text-zinc-300 sm:whitespace-nowrap">{window.location.origin}/session/{selectedSessionData.id}</code>
                   </div>
                 </div>
 
@@ -385,7 +389,7 @@ export default function Dashboard() {
                     <h3 className="text-xl font-bold">Messages ({liveMessages.length})</h3>
                     {liveMessages.length > 0 && (
                       <button 
-                        onClick={() => navigate(`/view-message/${selectedPitData.id}`)}
+                      onClick={() => navigate(`/view-message/${selectedSessionData.id}`)}
                         className='text-lg font-bold bg-primary hover:bg-primary-dark p-3 rounded-xl transition-all'
                       >
                         View Messages
@@ -401,7 +405,7 @@ export default function Dashboard() {
                     liveMessages.map((message) => (
                       <div 
                         key={message.id} 
-                        onClick={() => navigate(`/view-message/${selectedPitData.id}`)}
+                        onClick={() => navigate(`/view-message/${selectedSessionData.id}`)}
                         className="p-6 rounded-xl bg-white/5 backdrop-blur-sm border border-zinc-800 hover:border-purple-500 active:border-purple-800 transition-all cursor-pointer"
                       >
                         <div className="flex justify-between items-start mb-4">
@@ -451,7 +455,7 @@ export default function Dashboard() {
               </div>
             ) : (
               <div className="text-center py-20 text-zinc-400">
-                <p>Select a pit to view messages</p>
+                <p>Select a session to view messages</p>
               </div>
             )}
           </div>
@@ -463,12 +467,12 @@ export default function Dashboard() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-zinc-900 p-6 rounded-xl border border-zinc-800 max-w-md w-full mx-4">
             <h3 className="text-xl font-bold mb-4">
-              {confirmAction.type === 'end' ? 'End Pit Session?' : 'Delete Pit?'}
+              {confirmAction.type === 'end' ? 'End Session?' : 'Delete Session?'}
             </h3>
             <p className="text-zinc-400 mb-6">
               {confirmAction.type === 'end' 
                 ? 'This will stop accepting new messages but keep existing ones.' 
-                : 'This will permanently delete the pit and all liveMessages.'}
+                : 'This will permanently delete the session and all messages.'}
             </p>
             <div className="flex gap-3">
               <button
@@ -478,7 +482,7 @@ export default function Dashboard() {
                 Cancel
               </button>
               <button
-                onClick={() => confirmAction.type === 'end' ? endPit(confirmAction.pitId) : deletePit(confirmAction.pitId)}
+                onClick={() => confirmAction.type === 'end' ? endSession(confirmAction.sessionId) : deleteSession(confirmAction.sessionId)}
                 className={`flex-1 px-4 py-2 rounded-lg transition-all ${
                   confirmAction.type === 'end' 
                     ? 'bg-orange-600 hover:bg-orange-700' 
