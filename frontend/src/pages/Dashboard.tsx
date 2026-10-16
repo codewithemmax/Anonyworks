@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { LogOut, Plus, Link, Copy, Eye, EyeOff, Clock, Trash2, StopCircle, Share2 } from 'lucide-react';
 import { api } from '../utils/api';
 import { toast } from '../components/Toast';
-import { usePitLive } from '../hooks/usePitLive.ts'
+import { usePitLive } from '../hooks/usePitLive';
 
 interface Pit {
   id: string;
