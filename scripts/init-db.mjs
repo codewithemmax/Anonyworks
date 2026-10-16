@@ -1,5 +1,12 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
 import pg from 'pg';
+
+dotenv.config({ path: '.env.local' });
+dotenv.config();
+
+if (!process.env.SUPABASE_DB_URL) {
+  throw new Error('SUPABASE_DB_URL is missing. Add it to .env.local before initializing the database.');
+}
 
 const { Pool } = pg;
 const pool = new Pool({
