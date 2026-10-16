@@ -106,14 +106,10 @@ anonyworks/
 │   │   ├── pages/           # Page components
 │   │   ├── utils/           # API utility
 │   │   ├── App.tsx          # Main app component
-│   │   └── main.tsx         # Entry point
+│   │   └── index.css        # Tailwind entry stylesheet
 │   ├── public/              # Static assets
-│   ├── .env                 # Environment variables
-│   └── package.json
-│
 ├── app/api/[...route]/       # Serverless API route handler
 ├── package.json              # Next.js scripts and dependencies
-├── package.json            # Root scripts
 └── README.md               # This file
 ```
 
@@ -134,7 +130,7 @@ anonyworks/
 ### API
 ```bash
 # Signup
-curl -X POST http://localhost:3001/api/auth/signup \
+curl -X POST http://localhost:3000/api/auth/signup \
   -H "Content-Type: application/json" \
   -d '{"email":"test@example.com","password":"pass123","name":"Test User","userType":"individual"}'
 
@@ -157,8 +153,7 @@ curl http://localhost:3000/api/user/profile \
 
 ## 📚 Documentation
 
-- [Backend Documentation](BACKEND-DOCUMENTATION.md) - Complete backend architecture guide
-- API endpoints, authentication flow, database schema, and more
+- API endpoints, authentication flow, and database schema are implemented in `app/api/[...route]/route.ts`
 
 
 ## 📝 License

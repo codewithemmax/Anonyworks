@@ -1,7 +1,7 @@
 import bcrypt from 'bcrypt';
 import { NextResponse } from 'next/server';
-import { pool } from '../../../../lib/db';
-import { generateToken, getAuthUser } from '../../../../lib/auth';
+import { pool } from '../../../lib/db';
+import { generateToken, getAuthUser } from '../../../lib/auth';
 
 export const runtime = 'nodejs';
 
