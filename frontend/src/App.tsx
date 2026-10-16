@@ -27,6 +27,7 @@ function App() {
             <Login />
           </ProtectedRoute>
         } />
+        <Route path="/session/:id" element={<Pit />} />
         <Route path="/pit/:id" element={<Pit />} />
         <Route path="/view-message/:pitId" element={
           <ProtectedRoute requireAuth={true}>
