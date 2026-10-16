@@ -145,7 +145,7 @@ export default function Pit() {
                   <p className="text-xs sm:text-sm text-zinc-400">
                     {pitInfo?.creator_type === 'company' || pitInfo?.force_professional
                       ? 'Automatically enabled for this feedback session'
-                      : 'Let Gemini rewrite your feedback professionally'
+                      : 'Mark your feedback as professional'
                     }
                   </p>
                 </div>

@@ -4,7 +4,6 @@ import { motion } from 'framer-motion';
 import { LogOut, Plus, Link, Copy, Eye, EyeOff, Clock, Trash2, StopCircle, Share2 } from 'lucide-react';
 import { api } from '../utils/api';
 import { toast } from '../components/Toast';
-import { supabase } from '../utils/supabase';
 import { usePitLive } from '../hooks/usePitLive.ts'
 
 interface Pit {
@@ -41,37 +40,6 @@ export default function Dashboard() {
 
   const liveMessages = usePitLive(selectedPit || undefined, messages);
   useEffect(() => {
-
-    // Handle Google OAuth redirect
-    const handleGoogleAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (session) {
-        // Create or get user from our backend
-        try {
-          const response = await api.fetch('/api/auth/google', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              email: session.user.email,
-              name: session.user.user_metadata.full_name || session.user.email,
-              googleId: session.user.id
-            })
-          });
-          
-          const data = await response.json();
-          
-          if (data.success) {
-            localStorage.setItem('token', data.token);
-            localStorage.setItem('user', JSON.stringify(data.user));
-          }
-        } catch (error) {
-          console.error('Google auth backend error:', error);
-        }
-      }
-    };
-
-    handleGoogleAuth();
 
     const fetchProfile = async () => {
       try {
@@ -193,9 +161,6 @@ export default function Dashboard() {
   };
 
   const handleLogout = async () => {
-    // Sign out from Supabase (Google OAuth)
-    await supabase.auth.signOut();
-    // Clear local storage
     api.logout();
     navigate('/login');
   };

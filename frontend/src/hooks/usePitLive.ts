@@ -10,28 +10,16 @@ export const usePitLive = (pitId: string | undefined, initialMessages: any[]) =>
 
   useEffect(() => {
     if (!pitId) return;
-
-    // 1. Point to your backend port (3001)
-    // In usePitLive.ts
-    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-    const socket = new WebSocket(`${protocol}://anonyworks.onrender.com`);
-
-    socket.onopen = () => {
-      // 2. Tell the backend which Pit we are watching
-      socket.send(JSON.stringify({ type: 'join', pitId }));
-    };
-
-    socket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      if (data.type === 'newMessage') {
-        // 3. Add new message to the top of the state
-        setMessages((prev) => [data.message, ...prev]);
+    const timer = window.setInterval(async () => {
+      const response = await fetch(`/api/pit/${pitId}/messages`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token') ?? ''}` },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) setMessages(data.messages);
       }
-    };
-
-    socket.onerror = (err) => console.error('WS Error:', err);
-
-    return () => socket.close();
+    }, 15000);
+    return () => window.clearInterval(timer);
   }, [pitId]);
 
   return messages;

@@ -1,7 +1,3 @@
-// Get the base URL from your environment variables
-// In production, this will be your Render URL
-const BASE_URL = 'https://anonyworks-pm02.onrender.com'; // Change to your production URL as needed
-
 export const api = {
   getToken: () => localStorage.getItem('token'),
   
@@ -21,18 +17,13 @@ export const api = {
   fetch: async (endpoint: string, options: RequestInit = {}) => {
     const token = api.getToken();
     
-    // 🔥 Ensure the URL is absolute if it starts with /api
-    const fullUrl = endpoint.startsWith('/') 
-      ? `${BASE_URL}${endpoint}` 
-      : endpoint;
-
     const headers = {
       'Content-Type': 'application/json',
       ...(token && { Authorization: `Bearer ${token}` }),
       ...options.headers,
     };
     
-    const response = await fetch(fullUrl, {
+    const response = await fetch(endpoint, {
       ...options,
       headers,
     });

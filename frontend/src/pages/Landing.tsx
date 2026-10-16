@@ -37,19 +37,19 @@ export default function Landing() {
           <span className="text-primary">anonymous feedback</span>
         </h1>
         <p className="text-xl text-zinc-400 mb-12 max-w-2xl mx-auto">
-          Empower your team with truly anonymous feedback powered by AI scrubbing technology
+          Empower your team with a private space for honest, anonymous feedback
         </p>
 
         <div className="grid md:grid-cols-3 gap-8 mt-20">
           <FeatureCard
             icon={Shield}
             title="True Anonymity"
-            description="Your identity is protected with military-grade encryption and AI-powered content scrubbing"
+            description="Share feedback without attaching your name or personal details"
           />
           <FeatureCard
             icon={MessageSquare}
-            title="Gemini-Powered Scrubbing"
-            description="Advanced AI removes identifying information while preserving the essence of your feedback"
+            title="Professional Feedback Mode"
+            description="Mark feedback as professional so teams can focus on clear, useful messages"
           />
           <FeatureCard
             icon={BarChart}
